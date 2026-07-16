@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCommunication } from '../context/CommunicationContext';
+import { useTheme } from '../context/ThemeContext';
 import { CanvasBackground } from '../components/CanvasBackground';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -15,7 +16,8 @@ import {
   UserCheck,
   UserPlus,
   X,
-  Menu
+  Sun,
+  Moon
 } from 'lucide-react';
 import type { User } from '../types';
 import './NetworkConstellationPage.css';
@@ -68,6 +70,7 @@ const useStageSize = () => {
 
 export const NetworkConstellationPage: React.FC = () => {
   const { user: authUser, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const { users, toggleFollow, startCall, setActiveChatUserId } = useCommunication();
   const navigate = useNavigate();
 
@@ -103,10 +106,32 @@ export const NetworkConstellationPage: React.FC = () => {
       setSelectedUser(prev => prev?.id === user.id ? null : user);
     } else {
       const rect = e.currentTarget.getBoundingClientRect();
-      setTooltipPos({
-        x: rect.left + rect.width / 2,
-        y: rect.top - 15,
-      });
+      const tooltipWidth = 280;
+      const tooltipHeight = 220; // safe estimation of max height
+      const headerHeight = 90;
+      const margin = 16;
+
+      // Calculate horizontal position (centered by default)
+      let x = rect.left + rect.width / 2 - tooltipWidth / 2;
+      if (x < margin) {
+        x = margin;
+      } else if (x + tooltipWidth > window.innerWidth - margin) {
+        x = window.innerWidth - tooltipWidth - margin;
+      }
+
+      // Calculate vertical position (above by default)
+      let y = rect.top - tooltipHeight - 12;
+      if (y < headerHeight) {
+        // Place below the node
+        y = rect.bottom + 12;
+
+        // If placing below also goes off-screen vertically, clamp it
+        if (y + tooltipHeight > window.innerHeight - margin) {
+          y = Math.max(headerHeight, window.innerHeight - tooltipHeight - margin);
+        }
+      }
+
+      setTooltipPos({ x, y });
       setSelectedUser(prev => prev?.id === user.id ? null : user);
     }
   };
@@ -135,7 +160,7 @@ export const NetworkConstellationPage: React.FC = () => {
         </div>
 
         {/* Desktop Nav */}
-        <nav className="constellation-nav desktop-nav">
+        {/* <nav className="constellation-nav desktop-nav">
           <button className="nav-link-btn" onClick={() => navigate('/dashboard')}>
             <LayoutDashboard size={16} />
             <span>Console</span>
@@ -144,13 +169,22 @@ export const NetworkConstellationPage: React.FC = () => {
             <UserIcon size={16} />
             <span>Directory</span>
           </button>
-        </nav>
+        </nav> */}
 
         {/* Desktop User Controls */}
-        <div className="constellation-user-control desktop-controls">
+        <div className="constellation-user-control">
+          <button 
+            className="btn-icon theme-toggle-btn" 
+            onClick={(e) => { e.stopPropagation(); toggleTheme(); }}
+            title={`Switch to ${theme === 'light' ? 'Dark' : 'Light'} Mode`}
+            style={{ marginRight: '8px' }}
+          >
+            {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
+          </button>
+
           <div className="user-pill" onClick={() => navigate(`/profile/${authUser.id}`)}>
             <img src={authUser.avatar} alt={authUser.name} className="header-avatar" />
-            <span>{authUser.name}</span>
+            <span className='desktop-controls'>{authUser.name}</span>
           </div>
           <button className="btn-icon btn-icon-rose" onClick={() => { logout(); navigate('/'); }} title="Log Out">
             <LogOut size={16} />
@@ -158,12 +192,12 @@ export const NetworkConstellationPage: React.FC = () => {
         </div>
 
         {/* Mobile Hamburger Menu */}
-        <button
+        {/* <button
           className="mobile-menu-toggle"
           onClick={(e) => { e.stopPropagation(); setMobileMenuOpen(!mobileMenuOpen); }}
         >
           {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
-        </button>
+        </button> */}
       </header>
 
       {/* Mobile Dropdown Menu */}
@@ -406,7 +440,7 @@ export const NetworkConstellationPage: React.FC = () => {
 
                   <p className="sheet-bio">{selectedUser.bio}</p>
 
-                  <div className="sheet-actions">
+                  {/* <div className="sheet-actions">
                     <button
                       className={`sheet-btn-follow ${selectedUser.isFollowing ? 'following' : ''}`}
                       onClick={(e) => { e.stopPropagation(); toggleFollow(selectedUser.id); }}
@@ -440,6 +474,42 @@ export const NetworkConstellationPage: React.FC = () => {
                       <Video size={18} />
                       <span>Video</span>
                     </button>
+                  </div> */}
+
+                  <div className="tooltip-actions">
+                    <button
+                      className={`tooltip-btn-follow ${selectedUser.isFollowing ? 'following' : ''}`}
+                      onClick={(e) => { e.stopPropagation(); toggleFollow(selectedUser.id); }}
+                    >
+                      {selectedUser.isFollowing ? <UserCheck size={12} /> : <UserPlus size={12} />}
+                      <span>{selectedUser.isFollowing ? 'Following' : 'Follow'}</span>
+                    </button>
+
+                    <div className="tooltip-comms">
+                      <button
+                        className="btn-icon btn-icon-cyan"
+                        onClick={(e) => { e.stopPropagation(); handleOpenChat(selectedUser.id); }}
+                        title="Chat"
+                      >
+                        <MessageSquare size={14} />
+                      </button>
+                      <button
+                        className="btn-icon btn-icon-violet"
+                        onClick={(e) => { e.stopPropagation(); handleLaunchCall(selectedUser as any, 'audio'); }}
+                        disabled={selectedUser.status === 'offline'}
+                        title="Audio Link"
+                      >
+                        <Phone size={14} />
+                      </button>
+                      <button
+                        className="btn-icon btn-icon-rose"
+                        onClick={(e) => { e.stopPropagation(); handleLaunchCall(selectedUser as any, 'video'); }}
+                        disabled={selectedUser.status === 'offline'}
+                        title="Video Stream"
+                      >
+                        <Video size={14} />
+                      </button>
+                    </div>
                   </div>
 
                   <button

@@ -123,7 +123,8 @@ export const CanvasBackground: React.FC = () => {
       ctx.clearRect(0, 0, width, height);
 
       // Draw subtle cyber grid
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.015)';
+      const isLightTheme = document.documentElement.classList.contains('light-theme');
+      ctx.strokeStyle = isLightTheme ? 'rgba(0, 0, 0, 0.03)' : 'rgba(255, 255, 255, 0.015)';
       ctx.lineWidth = 1;
       const gridSize = 80;
       for (let x = 0; x < width; x += gridSize) {

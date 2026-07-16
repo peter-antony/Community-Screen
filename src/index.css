@@ -39,6 +39,71 @@
   --header-height: 70px;
 }
 
+/* Light Theme Variables Override */
+.light-theme {
+  --bg-primary: #f3f4f6;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #e5e7eb;
+  
+  --text-primary: #111827;
+  --text-secondary: #4b5563;
+  --text-muted: #8b96a5;
+
+  --border-glass: rgba(0, 0, 0, 0.08);
+  --bg-glass: rgba(255, 255, 255, 0.65);
+  --bg-glass-hover: rgba(255, 255, 255, 0.85);
+
+  --shadow-glass: 0 8px 32px 0 rgba(31, 38, 135, 0.05);
+  --shadow-neon-cyan: 0 0 20px rgba(6, 182, 212, 0.15);
+  --shadow-neon-violet: 0 0 20px rgba(168, 85, 247, 0.15);
+}
+
+/* Generic Layout Light Theme Fixes */
+.light-theme .workspace-header {
+  background: rgba(255, 255, 255, 0.4) !important;
+}
+
+.light-theme .contacts-sidebar {
+  background: rgba(255, 255, 255, 0.3) !important;
+}
+
+.light-theme .chat-viewport {
+  background: rgba(255, 255, 255, 0.5) !important;
+}
+
+.light-theme input,
+.light-theme select,
+.light-theme textarea {
+  background: rgba(0, 0, 0, 0.03) !important;
+  color: var(--text-primary) !important;
+  border-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+.light-theme input:focus,
+.light-theme select:focus,
+.light-theme textarea:focus {
+  background: rgba(0, 0, 0, 0.01) !important;
+  border-color: var(--accent-cyan) !important;
+}
+
+.light-theme .call-node-item {
+  background: rgba(255, 255, 255, 0.8) !important;
+}
+
+.light-theme .chat-composer-input {
+  background: rgba(0, 0, 0, 0.03) !important;
+  color: var(--text-primary) !important;
+}
+
+.light-theme .chat-composer-input:focus {
+  background: rgba(0, 0, 0, 0.01) !important;
+}
+
+.light-theme .welcome-banner {
+  background: rgba(255, 255, 255, 0.65) !important;
+}
+
+
 * {
   box-sizing: border-box;
   margin: 0;

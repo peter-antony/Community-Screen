@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCommunication } from '../context/CommunicationContext';
+import { useTheme } from '../context/ThemeContext';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard,
   Users,
@@ -14,14 +16,19 @@ import {
   X,
   PhoneCall,
   Laptop,
-  Network
+  Network,
+  Menu,
+  Sun,
+  Moon
 } from 'lucide-react';
 import './AppLayout.css';
 
 export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, logout } = useAuth();
   const { callState, acceptCall, endCall, users, triggerIncomingCall } = useCommunication();
+  const { theme, toggleTheme } = useTheme();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -48,7 +55,7 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
   };
 
   return (
-    <div className="app-container">
+    <div className="app-container" onClick={() => setMobileMenuOpen(false)}>
       {/* Sidebar Navigation */}
       <aside className={`app-sidebar glass-panel ${isCollapsed ? 'collapsed' : ''}`}>
         <div className="sidebar-header">
@@ -97,8 +104,14 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
 
       {/* Main Workspace Frame */}
       <div className="main-workspace">
-        <header className="workspace-header glass-panel">
+        <header className="workspace-header glass-panel" onClick={(e) => e.stopPropagation()}>
           <div className="header-breadcrumbs">
+            <button
+              className="mobile-menu-toggle"
+              onClick={(e) => { e.stopPropagation(); setMobileMenuOpen(!mobileMenuOpen); }}
+            >
+              {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+            </button>
             <h2>
               {location.pathname === '/dashboard' && 'Core Console'}
               {location.pathname === '/community' && 'Network Directory'}
@@ -140,8 +153,68 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
               <Laptop size={16} />
               <span>DevMode ACTIVE</span>
             </div>
+
+            <button 
+              className="theme-toggle-btn btn-icon" 
+              onClick={(e) => { e.stopPropagation(); toggleTheme(); }}
+              title={`Switch to ${theme === 'light' ? 'Dark' : 'Light'} Mode`}
+            >
+              {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
+            </button>
           </div>
         </header>
+
+        {/* Mobile Dropdown Menu */}
+        <AnimatePresence>
+          {mobileMenuOpen && (
+            <motion.div
+              className="mobile-dropdown glass-panel"
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.2 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {menuItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = location.pathname === item.path;
+                return (
+                  <button
+                    key={item.path}
+                    className={`mobile-nav-link ${isActive ? 'active' : ''}`}
+                    onClick={() => {
+                      navigate(item.path);
+                      setMobileMenuOpen(false);
+                    }}
+                  >
+                    <Icon size={18} />
+                    <span>{item.label}</span>
+                  </button>
+                );
+              })}
+              <button
+                className="mobile-nav-link"
+                onClick={() => {
+                  toggleTheme();
+                  setMobileMenuOpen(false);
+                }}
+              >
+                {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
+                <span>{theme === 'light' ? 'Dark Theme' : 'Light Theme'}</span>
+              </button>
+              <button
+                className="mobile-nav-link logout-link"
+                onClick={() => {
+                  handleLogout();
+                  setMobileMenuOpen(false);
+                }}
+              >
+                <LogOut size={18} />
+                <span>Log Out</span>
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <main className="workspace-content">
           {children}

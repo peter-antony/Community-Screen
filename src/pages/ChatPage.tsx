@@ -1,28 +1,28 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCommunication } from '../context/CommunicationContext';
-import { 
-  Send, 
-  Smile, 
-  Paperclip, 
-  Phone, 
-  Video, 
-  User, 
+import {
+  Send,
+  Smile,
+  Paperclip,
+  Phone,
+  Video,
+  User,
   ShieldCheck
 } from 'lucide-react';
 import './ChatPage.css';
 
 export const ChatPage: React.FC = () => {
-  const { 
-    users, 
-    messages, 
-    activeChatUserId, 
-    isTyping, 
-    sendMessage, 
+  const {
+    users,
+    messages,
+    activeChatUserId,
+    isTyping,
+    sendMessage,
     setActiveChatUserId,
     startCall
   } = useCommunication();
-  
+
   const navigate = useNavigate();
   const [inputText, setInputText] = useState('');
   const chatScrollRef = useRef<HTMLDivElement | null>(null);
@@ -86,7 +86,7 @@ export const ChatPage: React.FC = () => {
                 (m.senderId === contact.id && m.receiverId === 'current_user_1')
             );
             const lastMsg = contactMsgs[contactMsgs.length - 1];
-            
+
             // Check unread messages
             const unreadCount = messages.filter(
               (m) => m.senderId === contact.id && m.receiverId === 'current_user_1' && !m.isRead
@@ -129,28 +129,28 @@ export const ChatPage: React.FC = () => {
               <img src={activeContact.avatar} alt={activeContact.name} className="header-avatar" />
               <div>
                 <span className="header-name">{activeContact.name}</span>
-                <span className="header-sub">
+                {/* <span className="header-sub">
                   {activeContact.status === 'online' ? (
                     <span className="text-cyan font-bold">● CONNECTED</span>
                   ) : (
                     <span>● DISCONNECTED</span>
                   )}
-                  {' '}— {activeContact.role}
-                </span>
+                  <span className="header-role"> — {activeContact.role}</span>
+                </span> */}
               </div>
             </div>
 
             <div className="chat-header-actions">
-              <button 
-                className="btn-icon btn-icon-cyan" 
+              <button
+                className="btn-icon btn-icon-cyan"
                 onClick={() => handleCall('audio')}
                 disabled={activeContact.status === 'offline'}
                 title="Establish Audio Link"
               >
                 <Phone size={16} />
               </button>
-              <button 
-                className="btn-icon btn-icon-violet" 
+              <button
+                className="btn-icon btn-icon-violet"
                 onClick={() => handleCall('video')}
                 disabled={activeContact.status === 'offline'}
                 title="Initiate Video Feed"
@@ -217,7 +217,7 @@ export const ChatPage: React.FC = () => {
             <button type="button" className="input-bar-btn" title="Add Media">
               <Paperclip size={18} />
             </button>
-            
+
             <input
               type="text"
               className="chat-composer-input"

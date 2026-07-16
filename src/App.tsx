@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { CommunicationProvider } from './context/CommunicationContext';
+import { ThemeProvider } from './context/ThemeContext';
 import { AppLayout } from './layouts/AppLayout';
 
 // Pages
@@ -108,11 +109,13 @@ const AppContent: React.FC = () => {
 function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <CommunicationProvider>
-          <AppContent />
-        </CommunicationProvider>
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <CommunicationProvider>
+            <AppContent />
+          </CommunicationProvider>
+        </AuthProvider>
+      </ThemeProvider>
     </BrowserRouter>
   );
 }
