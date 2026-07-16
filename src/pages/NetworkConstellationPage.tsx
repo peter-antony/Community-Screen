@@ -38,20 +38,20 @@ const useStageSize = () => {
     const size = Math.max(Math.min(horizontalMax, availableH), isMobile ? 260 : 320);
 
     const ratios = isMobile
-      ? { inner: 0.16, mid: 0.3, outer: 0.44, center: 0.12, sat: 0.085 }
+      ? { inner: 0.25, outer: 0.44, center: 0.22, innerSat: 0.18, outerSat: 0.1 }
       : isTablet
-        ? { inner: 0.17, mid: 0.31, outer: 0.45, center: 0.12, sat: 0.08 }
+        ? { inner: 0.24, outer: 0.44, center: 0.20, innerSat: 0.17, outerSat: 0.09 }
         : w <= 1024
-          ? { inner: 0.15, mid: 0.28, outer: 0.42, center: 0.11, sat: 0.075 }
-          : { inner: 0.14, mid: 0.27, outer: 0.42, center: 0.1, sat: 0.07 };
+          ? { inner: 0.23, outer: 0.43, center: 0.19, innerSat: 0.16, outerSat: 0.085 }
+          : { inner: 0.22, outer: 0.42, center: 0.18, innerSat: 0.16, outerSat: 0.08 };
 
     return {
       stageSize: size,
-      innerRadius: Math.max(size * ratios.inner, isMobile ? 45 : 60),
-      midRadius: Math.max(size * ratios.mid, isMobile ? 85 : 110),
-      outerRadius: Math.max(size * ratios.outer, isMobile ? 120 : 160),
-      centerSize: Math.max(size * ratios.center, isMobile ? 38 : 50),
-      satelliteSize: Math.max(size * ratios.sat, isMobile ? 28 : 36),
+      innerRadius: size * ratios.inner,
+      outerRadius: size * ratios.outer,
+      centerSize: size * ratios.center,
+      innerSatSize: size * ratios.innerSat,
+      outerSatSize: size * ratios.outerSat,
       isMobile,
       isTablet,
     };
@@ -82,15 +82,10 @@ export const NetworkConstellationPage: React.FC = () => {
 
   if (!authUser) return null;
 
-  // Distribute users dynamically across 3 orbit rings
+  // Distribute users dynamically: 6 in inner circle, rest in outer circle
   const satelliteUsers = users.filter(u => u.id !== authUser.id);
-  const total = satelliteUsers.length;
-  // Split into roughly equal thirds: inner gets ~30%, mid ~35%, outer rest
-  const innerCount = Math.round(total * 0.3);
-  const midCount = Math.round(total * 0.35);
-  const innerOrbitUsers = satelliteUsers.slice(0, innerCount);
-  const midOrbitUsers = satelliteUsers.slice(innerCount, innerCount + midCount);
-  const outerOrbitUsers = satelliteUsers.slice(innerCount + midCount);
+  const innerOrbitUsers = satelliteUsers.slice(0, Math.min(6, satelliteUsers.length));
+  const outerOrbitUsers = satelliteUsers.slice(Math.min(6, satelliteUsers.length));
 
   const getCoordinates = (index: number, count: number, radius: number) => {
     const angle = (index * 2 * Math.PI) / count - Math.PI / 2;
@@ -145,8 +140,6 @@ export const NetworkConstellationPage: React.FC = () => {
     startCall(user, type);
     navigate('/call');
   };
-
-  const svgCenter = stage.stageSize / 2;
 
   return (
     <div className="constellation-page" onClick={() => { setSelectedUser(null); setMobileMenuOpen(false); }}>
@@ -238,62 +231,7 @@ export const NetworkConstellationPage: React.FC = () => {
           style={{ width: stage.stageSize, height: stage.stageSize }}
         >
 
-          {/* Background SVG Orbits & Geometric Lines */}
-          <svg className="constellation-svg" viewBox={`0 0 ${stage.stageSize} ${stage.stageSize}`}>
-            {/* Concentric Orbit Paths */}
-            <circle cx={svgCenter} cy={svgCenter} r={stage.innerRadius} className="orbit-circle orbit-inner-path" />
-            <circle cx={svgCenter} cy={svgCenter} r={stage.midRadius} className="orbit-circle orbit-mid-path" />
-            <circle cx={svgCenter} cy={svgCenter} r={stage.outerRadius} className="orbit-circle orbit-outer-path" />
 
-            {/* Elliptical Overlay Paths */}
-            <ellipse cx={svgCenter} cy={svgCenter} rx={stage.outerRadius} ry={stage.midRadius} className="orbit-ellipse ellipse-1" />
-            <ellipse cx={svgCenter} cy={svgCenter} rx={stage.outerRadius} ry={stage.innerRadius} className="orbit-ellipse ellipse-2" />
-
-            {/* Connection Lines — Inner */}
-            {innerOrbitUsers.map((_, idx) => {
-              const coords = getCoordinates(idx, innerOrbitUsers.length, stage.innerRadius);
-              return (
-                <line
-                  key={`line-inner-${idx}`}
-                  x1={svgCenter}
-                  y1={svgCenter}
-                  x2={svgCenter + coords.x}
-                  y2={svgCenter + coords.y}
-                  className="connector-line line-cyan"
-                />
-              );
-            })}
-
-            {/* Connection Lines — Middle */}
-            {midOrbitUsers.map((_, idx) => {
-              const coords = getCoordinates(idx, midOrbitUsers.length, stage.midRadius);
-              return (
-                <line
-                  key={`line-mid-${idx}`}
-                  x1={svgCenter}
-                  y1={svgCenter}
-                  x2={svgCenter + coords.x}
-                  y2={svgCenter + coords.y}
-                  className="connector-line line-violet"
-                />
-              );
-            })}
-
-            {/* Connection Lines — Outer */}
-            {outerOrbitUsers.map((_, idx) => {
-              const coords = getCoordinates(idx, outerOrbitUsers.length, stage.outerRadius);
-              return (
-                <line
-                  key={`line-outer-${idx}`}
-                  x1={svgCenter}
-                  y1={svgCenter}
-                  x2={svgCenter + coords.x}
-                  y2={svgCenter + coords.y}
-                  className="connector-line line-rose"
-                />
-              );
-            })}
-          </svg>
 
           {/* Ambient Dust Particles */}
           <div className="ambient-particles">
@@ -305,7 +243,7 @@ export const NetworkConstellationPage: React.FC = () => {
             <span className="dust p-purple" style={{ top: '15%', left: '38%' }} />
           </div>
 
-          {/* CENTRAL NODE (Logged In User) */}
+          {/* CENTRAL NODE (Silhouette User Profile) */}
           <motion.div
             className="constellation-node center-node"
             style={{ width: stage.centerSize, height: stage.centerSize }}
@@ -315,11 +253,13 @@ export const NetworkConstellationPage: React.FC = () => {
             onClick={() => navigate(`/profile/${authUser.id}`)}
           >
             <div className="center-node-glow" style={{ width: stage.centerSize * 1.75, height: stage.centerSize * 1.75 }} />
-            <img src={authUser.avatar} alt={authUser.name} className="node-avatar-img" />
+            <div className="center-silhouette">
+              <UserIcon size={stage.centerSize * 0.45} className="silhouette-icon" />
+            </div>
             <span className="node-pulse-ring" />
           </motion.div>
 
-          {/* INNER SATELLITE NODES */}
+          {/* INNER SATELLITE NODES (Large size) */}
           {innerOrbitUsers.map((satellite, idx) => {
             const coords = getCoordinates(idx, innerOrbitUsers.length, stage.innerRadius);
             return (
@@ -327,8 +267,8 @@ export const NetworkConstellationPage: React.FC = () => {
                 key={satellite.id}
                 className="constellation-node satellite-node inner-sat"
                 style={{
-                  width: stage.satelliteSize,
-                  height: stage.satelliteSize,
+                  width: stage.innerSatSize,
+                  height: stage.innerSatSize,
                   transform: `translate(-50%, -50%)`,
                   left: `calc(50% + ${coords.x}px)`,
                   top: `calc(50% + ${coords.y}px)`
@@ -344,32 +284,7 @@ export const NetworkConstellationPage: React.FC = () => {
             );
           })}
 
-          {/* MIDDLE SATELLITE NODES */}
-          {midOrbitUsers.map((satellite, idx) => {
-            const coords = getCoordinates(idx, midOrbitUsers.length, stage.midRadius);
-            return (
-              <motion.div
-                key={satellite.id}
-                className="constellation-node satellite-node mid-sat"
-                style={{
-                  width: stage.satelliteSize,
-                  height: stage.satelliteSize,
-                  transform: `translate(-50%, -50%)`,
-                  left: `calc(50% + ${coords.x}px)`,
-                  top: `calc(50% + ${coords.y}px)`
-                }}
-                initial={{ scale: 0, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ delay: 0.2 + 0.08 * idx, type: 'spring' }}
-                onClick={(e) => handleNodeClick(e, satellite)}
-              >
-                <div className={`satellite-glow-ring ${satellite.status}`} />
-                <img src={satellite.avatar} alt={satellite.name} className="node-avatar-img" />
-              </motion.div>
-            );
-          })}
-
-          {/* OUTER SATELLITE NODES */}
+          {/* OUTER SATELLITE NODES (Small size) */}
           {outerOrbitUsers.map((satellite, idx) => {
             const coords = getCoordinates(idx, outerOrbitUsers.length, stage.outerRadius);
             return (
@@ -377,15 +292,15 @@ export const NetworkConstellationPage: React.FC = () => {
                 key={satellite.id}
                 className="constellation-node satellite-node outer-sat"
                 style={{
-                  width: stage.satelliteSize,
-                  height: stage.satelliteSize,
+                  width: stage.outerSatSize,
+                  height: stage.outerSatSize,
                   transform: `translate(-50%, -50%)`,
                   left: `calc(50% + ${coords.x}px)`,
                   top: `calc(50% + ${coords.y}px)`
                 }}
                 initial={{ scale: 0, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
-                transition={{ delay: 0.4 + 0.06 * idx, type: 'spring' }}
+                transition={{ delay: 0.2 + 0.05 * idx, type: 'spring' }}
                 onClick={(e) => handleNodeClick(e, satellite)}
               >
                 <div className={`satellite-glow-ring ${satellite.status}`} />
