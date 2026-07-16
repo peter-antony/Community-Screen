@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCommunication } from '../context/CommunicationContext';
 import { useTheme } from '../context/ThemeContext';
-import { CanvasBackground } from '../components/CanvasBackground';
+import { NetworkBackground } from '../components/NetworkBackground';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   MessageSquare,
@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import type { User } from '../types';
 import './NetworkConstellationPage.css';
+import { CanvasBackground } from '../components/CanvasBackground';
 
 // Hook to get responsive stage dimensions — always fits within viewport
 const useStageSize = () => {
@@ -143,7 +144,8 @@ export const NetworkConstellationPage: React.FC = () => {
 
   return (
     <div className="constellation-page" onClick={() => { setSelectedUser(null); setMobileMenuOpen(false); }}>
-      <CanvasBackground />
+      <NetworkBackground />
+      {/* <CanvasBackground /> */}
 
       {/* Futuristic Floating Header */}
       <header className="constellation-header glass-panel" onClick={(e) => e.stopPropagation()}>
@@ -166,8 +168,8 @@ export const NetworkConstellationPage: React.FC = () => {
 
         {/* Desktop User Controls */}
         <div className="constellation-user-control">
-          <button 
-            className="btn-icon theme-toggle-btn" 
+          <button
+            className="btn-icon theme-toggle-btn"
             onClick={(e) => { e.stopPropagation(); toggleTheme(); }}
             title={`Switch to ${theme === 'light' ? 'Dark' : 'Light'} Mode`}
             style={{ marginRight: '8px' }}

@@ -8,7 +8,7 @@ import './LoginPage.css';
 export const LoginPage: React.FC = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
-  
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -19,7 +19,7 @@ export const LoginPage: React.FC = () => {
       setError('Please provide a simulation key and passcode.');
       return;
     }
-    
+
     // Standard mock login as Creative Developer
     login('creative_developer');
     navigate('/network');
@@ -37,7 +37,7 @@ export const LoginPage: React.FC = () => {
       <div className="login-container">
         <div className="login-card glass-panel">
           <div className="login-glow-bg" />
-          
+
           <div className="login-header">
             <div className="logo-container logo-center">
               <div className="logo-glow-dot" />
@@ -93,7 +93,7 @@ export const LoginPage: React.FC = () => {
             </div>
 
             <div className="role-grid">
-              <button 
+              <button
                 className="role-node-btn cyan"
                 onClick={() => handleQuickLogin('creative_developer')}
               >
@@ -104,7 +104,7 @@ export const LoginPage: React.FC = () => {
                 </div>
               </button>
 
-              <button 
+              <button
                 className="role-node-btn violet"
                 onClick={() => handleQuickLogin('designer')}
               >
@@ -115,7 +115,7 @@ export const LoginPage: React.FC = () => {
                 </div>
               </button>
 
-              <button 
+              <button
                 className="role-node-btn"
                 onClick={() => handleQuickLogin('guest')}
               >

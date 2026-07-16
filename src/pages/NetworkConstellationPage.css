@@ -9,6 +9,45 @@
   z-index: 1;
 }
 
+/* Base background image */
+.constellation-page::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: url('/network_tech_background.png') no-repeat center center;
+  background-size: cover;
+  z-index: -2;
+  pointer-events: none;
+  transition: filter 0.3s, opacity 0.3s;
+}
+
+/* Gradient overlay mask for contrast */
+.constellation-page::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at center, rgba(3, 7, 18, 0.45) 0%, rgba(3, 7, 18, 0.8) 100%);
+  z-index: -1;
+  pointer-events: none;
+  transition: background 0.3s;
+}
+
+/* Light Theme inverts the background image into a clean crisp tech layout */
+.light-theme .constellation-page::before {
+  filter: invert(0.92) hue-rotate(180deg) brightness(1.05) contrast(0.95);
+  opacity: 0.65;
+}
+
+.light-theme .constellation-page::after {
+  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.5) 0%, rgba(243, 244, 246, 0.85) 100%);
+}
+
 /* ========================================
    FUTURISTIC HEADER
    ======================================== */
