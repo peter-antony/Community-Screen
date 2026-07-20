@@ -316,7 +316,7 @@ export const CommunityMapPage: React.FC = () => {
     if (!dragging) return;
     setPanOffset({ x: e.touches[0].clientX - dragStart.x, y: e.touches[0].clientY - dragStart.y });
   }, [dragging, dragStart]);
-  const onTouchEnd = useCallback((e: React.TouchEvent) => {
+  const onTouchEnd = useCallback(() => {
     if (!dragging) return;
     setDragging(false);
     const dx = panOffset.x;

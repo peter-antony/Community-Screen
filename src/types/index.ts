@@ -30,3 +30,25 @@ export interface CallState {
   type: 'audio' | 'video';
   callDuration: number;
 }
+
+export interface CommunityMember {
+  name: string;
+  avatar: string;
+}
+
+export interface CommunityItem {
+  id: string;
+  name: string;
+  theme: 'hiking' | 'drinks' | 'tech' | 'books' | 'cycling' | 'yoga' | 'art';
+  image: string;
+  status: 'Today' | 'Saturday' | 'Tuesday' | 'Thursday' | 'Ended';
+  dateStr: string;
+  timeStr: string;
+  distance: string;
+  host: {
+    name: string;
+    avatar: string;
+  };
+  attendees: CommunityMember[];
+}
+

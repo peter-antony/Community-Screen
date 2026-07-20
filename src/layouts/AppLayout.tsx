@@ -137,7 +137,7 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
             )}
 
             {/* Inbound Call Simulator Quick Actions */}
-            <div className="tester-pill">
+            {/* <div className="tester-pill">
               <span className="tester-label">Simulate Inbound:</span>
               <button
                 className="tester-btn btn-cyan"
@@ -158,10 +158,10 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
             <div className="system-indicator">
               <Laptop size={16} />
               <span>DevMode ACTIVE</span>
-            </div>
+            </div> */}
 
-            <button 
-              className="theme-toggle-btn btn-icon" 
+            <button
+              className="theme-toggle-btn btn-icon"
               onClick={(e) => { e.stopPropagation(); toggleTheme(); }}
               title={`Switch to ${theme === 'light' ? 'Dark' : 'Light'} Mode`}
             >

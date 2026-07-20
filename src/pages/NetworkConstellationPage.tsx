@@ -17,11 +17,12 @@ import {
   UserPlus,
   X,
   Sun,
-  Moon
+  Moon,
+  Users
 } from 'lucide-react';
-import type { User } from '../types';
+import type { User, CommunityItem } from '../types';
 import './NetworkConstellationPage.css';
-import { CanvasBackground } from '../components/CanvasBackground';
+import { communitiesData } from '../services/mockData';
 
 // Hook to get responsive stage dimensions — always fits within viewport
 const useStageSize = () => {
@@ -75,7 +76,11 @@ export const NetworkConstellationPage: React.FC = () => {
   const { users, toggleFollow, startCall, setActiveChatUserId } = useCommunication();
   const navigate = useNavigate();
 
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [selectedNode, setSelectedNode] = useState<
+    | { type: 'user'; data: User }
+    | { type: 'community'; data: CommunityItem }
+    | null
+  >(null);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -83,10 +88,28 @@ export const NetworkConstellationPage: React.FC = () => {
 
   if (!authUser) return null;
 
-  // Distribute users dynamically: 6 in inner circle, rest in outer circle
+  // Selected node helpers
+  const selectedUser = selectedNode?.type === 'user' ? (selectedNode.data as User) : null;
+  const selectedCommunity = selectedNode?.type === 'community' ? (selectedNode.data as CommunityItem) : null;
+
+  // Distribute users & communities dynamically: 6 in inner circle, rest in outer circle
   const satelliteUsers = users.filter(u => u.id !== authUser.id);
+  const constellationCommunities = communitiesData.slice(0, 4); // Show first 4 communities in constellation
+
   const innerOrbitUsers = satelliteUsers.slice(0, Math.min(6, satelliteUsers.length));
   const outerOrbitUsers = satelliteUsers.slice(Math.min(6, satelliteUsers.length));
+
+  // Mix users and communities in orbits
+  const innerOrbitNodes = [
+    ...innerOrbitUsers.slice(0, 4).map(u => ({ type: 'user' as const, id: u.id, name: u.name, avatar: u.avatar, data: u })),
+    ...constellationCommunities.slice(0, 2).map(c => ({ type: 'community' as const, id: c.id, name: c.name, avatar: c.image, data: c }))
+  ];
+
+  const outerOrbitNodes = [
+    ...outerOrbitUsers.map(u => ({ type: 'user' as const, id: u.id, name: u.name, avatar: u.avatar, data: u })),
+    ...constellationCommunities.slice(2).map(c => ({ type: 'community' as const, id: c.id, name: c.name, avatar: c.image, data: c }))
+  ];
+
 
   const getCoordinates = (index: number, count: number, radius: number) => {
     const angle = (index * 2 * Math.PI) / count - Math.PI / 2;
@@ -95,15 +118,15 @@ export const NetworkConstellationPage: React.FC = () => {
     return { x, y };
   };
 
-  const handleNodeClick = (e: React.MouseEvent, user: User) => {
+  const handleNodeClick = (e: React.MouseEvent, nodeData: User | CommunityItem, type: 'user' | 'community') => {
     e.stopPropagation();
     if (stage.isMobile || stage.isTablet) {
       // On mobile/tablet, show bottom sheet — no position needed
-      setSelectedUser(prev => prev?.id === user.id ? null : user);
+      setSelectedNode(prev => prev?.data.id === nodeData.id ? null : { type, data: nodeData } as any);
     } else {
       const rect = e.currentTarget.getBoundingClientRect();
       const tooltipWidth = 280;
-      const tooltipHeight = 220; // safe estimation of max height
+      const tooltipHeight = type === 'community' ? 320 : 220; // safe estimation of max height
       const headerHeight = 90;
       const margin = 16;
 
@@ -128,7 +151,7 @@ export const NetworkConstellationPage: React.FC = () => {
       }
 
       setTooltipPos({ x, y });
-      setSelectedUser(prev => prev?.id === user.id ? null : user);
+      setSelectedNode(prev => prev?.data.id === nodeData.id ? null : { type, data: nodeData } as any);
     }
   };
 
@@ -143,7 +166,7 @@ export const NetworkConstellationPage: React.FC = () => {
   };
 
   return (
-    <div className="constellation-page" onClick={() => { setSelectedUser(null); setMobileMenuOpen(false); }}>
+    <div className="constellation-page" onClick={() => { setSelectedNode(null); setMobileMenuOpen(false); }}>
       <NetworkBackground />
       {/* <CanvasBackground /> */}
 
@@ -262,12 +285,13 @@ export const NetworkConstellationPage: React.FC = () => {
           </motion.div>
 
           {/* INNER SATELLITE NODES (Large size) */}
-          {innerOrbitUsers.map((satellite, idx) => {
-            const coords = getCoordinates(idx, innerOrbitUsers.length, stage.innerRadius);
+          {innerOrbitNodes.map((node, idx) => {
+            const coords = getCoordinates(idx, innerOrbitNodes.length, stage.innerRadius);
+            const isCommunity = node.type === 'community';
             return (
               <motion.div
-                key={satellite.id}
-                className="constellation-node satellite-node inner-sat"
+                key={node.id}
+                className={`constellation-node satellite-node inner-sat ${isCommunity ? 'community-node' : ''}`}
                 style={{
                   width: stage.innerSatSize,
                   height: stage.innerSatSize,
@@ -278,21 +302,27 @@ export const NetworkConstellationPage: React.FC = () => {
                 initial={{ scale: 0, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ delay: 0.1 * idx, type: 'spring' }}
-                onClick={(e) => handleNodeClick(e, satellite)}
+                onClick={(e) => handleNodeClick(e, node.data, node.type)}
               >
-                <div className={`satellite-glow-ring ${satellite.status}`} />
-                <img src={satellite.avatar} alt={satellite.name} className="node-avatar-img" />
+                <div className={`satellite-glow-ring ${isCommunity ? 'community-glow' : node.data.status}`} />
+                <img src={node.avatar} alt={node.name} className="node-avatar-img" />
+                {isCommunity && (
+                  <div className="node-group-badge">
+                    <Users size={10} />
+                  </div>
+                )}
               </motion.div>
             );
           })}
 
           {/* OUTER SATELLITE NODES (Small size) */}
-          {outerOrbitUsers.map((satellite, idx) => {
-            const coords = getCoordinates(idx, outerOrbitUsers.length, stage.outerRadius);
+          {outerOrbitNodes.map((node, idx) => {
+            const coords = getCoordinates(idx, outerOrbitNodes.length, stage.outerRadius);
+            const isCommunity = node.type === 'community';
             return (
               <motion.div
-                key={satellite.id}
-                className="constellation-node satellite-node outer-sat"
+                key={node.id}
+                className={`constellation-node satellite-node outer-sat ${isCommunity ? 'community-node' : ''}`}
                 style={{
                   width: stage.outerSatSize,
                   height: stage.outerSatSize,
@@ -303,10 +333,15 @@ export const NetworkConstellationPage: React.FC = () => {
                 initial={{ scale: 0, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ delay: 0.2 + 0.05 * idx, type: 'spring' }}
-                onClick={(e) => handleNodeClick(e, satellite)}
+                onClick={(e) => handleNodeClick(e, node.data, node.type)}
               >
-                <div className={`satellite-glow-ring ${satellite.status}`} />
-                <img src={satellite.avatar} alt={satellite.name} className="node-avatar-img" />
+                <div className={`satellite-glow-ring ${isCommunity ? 'community-glow' : node.data.status}`} />
+                <img src={node.avatar} alt={node.name} className="node-avatar-img" />
+                {isCommunity && (
+                  <div className="node-group-badge">
+                    <Users size={8} />
+                  </div>
+                )}
               </motion.div>
             );
           })}
@@ -315,7 +350,7 @@ export const NetworkConstellationPage: React.FC = () => {
 
       {/* Tooltip / Detail Card */}
       <AnimatePresence>
-        {selectedUser && (
+        {selectedNode && (
           <>
             {/* Mobile/Tablet: Bottom Sheet Overlay */}
             {(stage.isMobile || stage.isTablet) ? (
@@ -325,7 +360,7 @@ export const NetworkConstellationPage: React.FC = () => {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  onClick={() => setSelectedUser(null)}
+                  onClick={() => setSelectedNode(null)}
                 />
                 <motion.div
                   className="mobile-detail-sheet glass-panel"
@@ -336,111 +371,128 @@ export const NetworkConstellationPage: React.FC = () => {
                   onClick={(e) => e.stopPropagation()}
                 >
                   <div className="sheet-handle" />
-                  <button className="sheet-close-btn" onClick={() => setSelectedUser(null)}>
+                  <button className="sheet-close-btn" onClick={() => setSelectedNode(null)}>
                     <X size={18} />
                   </button>
 
-                  <div className="sheet-profile-section">
-                    <img
-                      src={selectedUser.avatar}
-                      alt={selectedUser.name}
-                      className="sheet-avatar"
-                      onClick={() => navigate(`/profile/${selectedUser.id}`)}
-                    />
-                    <h3 className="sheet-name">{selectedUser.name}</h3>
-                    <span className="sheet-role">{selectedUser.role}</span>
-                    <span className="sheet-status">
-                      <span className={`status-indicator ${selectedUser.status}`} />
-                      {selectedUser.status.toUpperCase()}
-                    </span>
-                  </div>
+                  {selectedNode.type === 'user' && selectedUser ? (
+                    <>
+                      <div className="sheet-profile-section">
+                        <img
+                          src={selectedUser.avatar}
+                          alt={selectedUser.name}
+                          className="sheet-avatar"
+                          onClick={() => navigate(`/profile/${selectedUser.id}`)}
+                        />
+                        <h3 className="sheet-name">{selectedUser.name}</h3>
+                        <span className="sheet-role">{selectedUser.role}</span>
+                        <span className="sheet-status">
+                          <span className={`status-indicator ${selectedUser.status}`} />
+                          {selectedUser.status.toUpperCase()}
+                        </span>
+                      </div>
 
-                  <p className="sheet-bio">{selectedUser.bio}</p>
+                      <p className="sheet-bio">{selectedUser.bio}</p>
 
-                  {/* <div className="sheet-actions">
-                    <button
-                      className={`sheet-btn-follow ${selectedUser.isFollowing ? 'following' : ''}`}
-                      onClick={(e) => { e.stopPropagation(); toggleFollow(selectedUser.id); }}
-                    >
-                      {selectedUser.isFollowing ? <UserCheck size={16} /> : <UserPlus size={16} />}
-                      <span>{selectedUser.isFollowing ? 'Following' : 'Follow'}</span>
-                    </button>
+                      <div className="tooltip-actions">
+                        <button
+                          className={`tooltip-btn-follow ${selectedUser.isFollowing ? 'following' : ''}`}
+                          onClick={(e) => { e.stopPropagation(); toggleFollow(selectedUser.id); }}
+                        >
+                          {selectedUser.isFollowing ? <UserCheck size={12} /> : <UserPlus size={12} />}
+                          <span>{selectedUser.isFollowing ? 'Following' : 'Follow'}</span>
+                        </button>
 
-                    <button
-                      className="sheet-action-btn btn-icon-cyan"
-                      onClick={(e) => { e.stopPropagation(); handleOpenChat(selectedUser.id); }}
-                    >
-                      <MessageSquare size={18} />
-                      <span>Message</span>
-                    </button>
+                        <div className="tooltip-comms">
+                          <button
+                            className="btn-icon btn-icon-cyan"
+                            onClick={(e) => { e.stopPropagation(); handleOpenChat(selectedUser.id); }}
+                            title="Chat"
+                          >
+                            <MessageSquare size={14} />
+                          </button>
+                          <button
+                            className="btn-icon btn-icon-violet"
+                            onClick={(e) => { e.stopPropagation(); handleLaunchCall(selectedUser, 'audio'); }}
+                            disabled={selectedUser.status === 'offline'}
+                            title="Audio Link"
+                          >
+                            <Phone size={14} />
+                          </button>
+                          <button
+                            className="btn-icon btn-icon-rose"
+                            onClick={(e) => { e.stopPropagation(); handleLaunchCall(selectedUser, 'video'); }}
+                            disabled={selectedUser.status === 'offline'}
+                            title="Video Stream"
+                          >
+                            <Video size={14} />
+                          </button>
+                        </div>
+                      </div>
 
-                    <button
-                      className="sheet-action-btn btn-icon-violet"
-                      onClick={(e) => { e.stopPropagation(); handleLaunchCall(selectedUser as any, 'audio'); }}
-                      disabled={selectedUser.status === 'offline'}
-                    >
-                      <Phone size={18} />
-                      <span>Call</span>
-                    </button>
-
-                    <button
-                      className="sheet-action-btn btn-icon-rose"
-                      onClick={(e) => { e.stopPropagation(); handleLaunchCall(selectedUser as any, 'video'); }}
-                      disabled={selectedUser.status === 'offline'}
-                    >
-                      <Video size={18} />
-                      <span>Video</span>
-                    </button>
-                  </div> */}
-
-                  <div className="tooltip-actions">
-                    <button
-                      className={`tooltip-btn-follow ${selectedUser.isFollowing ? 'following' : ''}`}
-                      onClick={(e) => { e.stopPropagation(); toggleFollow(selectedUser.id); }}
-                    >
-                      {selectedUser.isFollowing ? <UserCheck size={12} /> : <UserPlus size={12} />}
-                      <span>{selectedUser.isFollowing ? 'Following' : 'Follow'}</span>
-                    </button>
-
-                    <div className="tooltip-comms">
                       <button
-                        className="btn-icon btn-icon-cyan"
-                        onClick={(e) => { e.stopPropagation(); handleOpenChat(selectedUser.id); }}
-                        title="Chat"
+                        className="sheet-profile-link"
+                        onClick={() => navigate(`/profile/${selectedUser.id}`)}
                       >
-                        <MessageSquare size={14} />
+                        View Full Profile →
                       </button>
-                      <button
-                        className="btn-icon btn-icon-violet"
-                        onClick={(e) => { e.stopPropagation(); handleLaunchCall(selectedUser as any, 'audio'); }}
-                        disabled={selectedUser.status === 'offline'}
-                        title="Audio Link"
-                      >
-                        <Phone size={14} />
-                      </button>
-                      <button
-                        className="btn-icon btn-icon-rose"
-                        onClick={(e) => { e.stopPropagation(); handleLaunchCall(selectedUser as any, 'video'); }}
-                        disabled={selectedUser.status === 'offline'}
-                        title="Video Stream"
-                      >
-                        <Video size={14} />
-                      </button>
-                    </div>
-                  </div>
+                    </>
+                  ) : (
+                    selectedCommunity && (
+                      <>
+                        <div className="community-sheet-cover-wrapper" style={{ cursor: 'pointer' }} onClick={() => { setSelectedNode(null); navigate(`/community-details/${selectedCommunity.id}`); }}>
+                          <img src={selectedCommunity.image} alt={selectedCommunity.name} className="community-sheet-cover" />
+                          <div className="community-sheet-host-badge">
+                            <img src={selectedCommunity.host.avatar} alt={selectedCommunity.host.name} className="sheet-host-avatar" />
+                            <span>by {selectedCommunity.host.name.split(' ')[0]}</span>
+                          </div>
+                        </div>
 
-                  <button
-                    className="sheet-profile-link"
-                    onClick={() => navigate(`/profile/${selectedUser.id}`)}
-                  >
-                    View Full Profile →
-                  </button>
+                        <div className="community-sheet-details">
+                          <h3 className="community-sheet-title">{selectedCommunity.name}</h3>
+                          <div className="community-sheet-meta">
+                            <span>{selectedCommunity.dateStr} at {selectedCommunity.timeStr}</span>
+                            <span className="meta-dot">•</span>
+                            <span>{selectedCommunity.distance}</span>
+                          </div>
+                        </div>
+
+                        <div className="community-sheet-attendees-section">
+                          <span className="community-members-label">Members joined</span>
+                          <div className="attendee-stack">
+                            {selectedCommunity.attendees.slice(0, 3).map((attendee, idx) => (
+                              <img
+                                key={idx}
+                                src={attendee.avatar}
+                                alt={attendee.name}
+                                className="attendee-avatar"
+                                style={{ zIndex: 3 - idx }}
+                              />
+                            ))}
+                            {selectedCommunity.attendees.length > 3 && (
+                              <div className="attendee-excess" style={{ zIndex: 0 }}>
+                                +{selectedCommunity.attendees.length - 3}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        <button
+                          className="sheet-profile-link"
+                          style={{ marginTop: '16px' }}
+                          onClick={() => { setSelectedNode(null); navigate(`/community-details/${selectedCommunity.id}`); }}
+                        >
+                          View Event Details →
+                        </button>
+                      </>
+                    )
+                  )}
                 </motion.div>
               </>
             ) : (
               /* Desktop: Floating Glass Tooltip */
               <motion.div
-                className="constellation-tooltip glass-panel"
+                className={`constellation-tooltip glass-panel ${selectedNode.type === 'community' ? 'community-tooltip' : ''}`}
                 style={{
                   position: 'fixed',
                   left: tooltipPos.x,
@@ -452,60 +504,109 @@ export const NetworkConstellationPage: React.FC = () => {
                 transition={{ duration: 0.2 }}
                 onClick={(e) => e.stopPropagation()}
               >
-                <div
-                  className="tooltip-user-row"
-                  style={{ cursor: 'pointer' }}
-                  onClick={() => navigate(`/profile/${selectedUser.id}`)}
-                  title="View Identity Profile"
-                >
-                  <img src={selectedUser.avatar} alt={selectedUser.name} className="tooltip-avatar" />
-                  <div>
-                    <h4 className="tooltip-name">{selectedUser.name}</h4>
-                    <span className="tooltip-role">{selectedUser.role}</span>
-                    <span className="tooltip-status-text">
-                      <span className={`status-indicator ${selectedUser.status}`} />{' '}
-                      {selectedUser.status.toUpperCase()}
-                    </span>
-                  </div>
-                </div>
-
-                <p className="tooltip-bio">{selectedUser.bio}</p>
-
-                <div className="tooltip-actions">
-                  <button
-                    className={`tooltip-btn-follow ${selectedUser.isFollowing ? 'following' : ''}`}
-                    onClick={(e) => { e.stopPropagation(); toggleFollow(selectedUser.id); }}
-                  >
-                    {selectedUser.isFollowing ? <UserCheck size={12} /> : <UserPlus size={12} />}
-                    <span>{selectedUser.isFollowing ? 'Following' : 'Follow'}</span>
-                  </button>
-
-                  <div className="tooltip-comms">
-                    <button
-                      className="btn-icon btn-icon-cyan"
-                      onClick={(e) => { e.stopPropagation(); handleOpenChat(selectedUser.id); }}
-                      title="Chat"
+                {selectedNode.type === 'user' && selectedUser ? (
+                  <>
+                    <div
+                      className="tooltip-user-row"
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => navigate(`/profile/${selectedUser.id}`)}
+                      title="View Identity Profile"
                     >
-                      <MessageSquare size={14} />
-                    </button>
-                    <button
-                      className="btn-icon btn-icon-violet"
-                      onClick={(e) => { e.stopPropagation(); handleLaunchCall(selectedUser as any, 'audio'); }}
-                      disabled={selectedUser.status === 'offline'}
-                      title="Audio Link"
-                    >
-                      <Phone size={14} />
-                    </button>
-                    <button
-                      className="btn-icon btn-icon-rose"
-                      onClick={(e) => { e.stopPropagation(); handleLaunchCall(selectedUser as any, 'video'); }}
-                      disabled={selectedUser.status === 'offline'}
-                      title="Video Stream"
-                    >
-                      <Video size={14} />
-                    </button>
-                  </div>
-                </div>
+                      <img src={selectedUser.avatar} alt={selectedUser.name} className="tooltip-avatar" />
+                      <div>
+                        <h4 className="tooltip-name">{selectedUser.name}</h4>
+                        <span className="tooltip-role">{selectedUser.role}</span>
+                        <span className="tooltip-status-text">
+                          <span className={`status-indicator ${selectedUser.status}`} />{' '}
+                          {selectedUser.status.toUpperCase()}
+                        </span>
+                      </div>
+                    </div>
+
+                    <p className="tooltip-bio">{selectedUser.bio}</p>
+
+                    <div className="tooltip-actions">
+                      <button
+                        className={`tooltip-btn-follow ${selectedUser.isFollowing ? 'following' : ''}`}
+                        onClick={(e) => { e.stopPropagation(); toggleFollow(selectedUser.id); }}
+                      >
+                        {selectedUser.isFollowing ? <UserCheck size={12} /> : <UserPlus size={12} />}
+                        <span>{selectedUser.isFollowing ? 'Following' : 'Follow'}</span>
+                      </button>
+
+                      <div className="tooltip-comms">
+                        <button
+                          className="btn-icon btn-icon-cyan"
+                          onClick={(e) => { e.stopPropagation(); handleOpenChat(selectedUser.id); }}
+                          title="Chat"
+                        >
+                          <MessageSquare size={14} />
+                        </button>
+                        <button
+                          className="btn-icon btn-icon-violet"
+                          onClick={(e) => { e.stopPropagation(); handleLaunchCall(selectedUser, 'audio'); }}
+                          disabled={selectedUser.status === 'offline'}
+                          title="Audio Link"
+                        >
+                          <Phone size={14} />
+                        </button>
+                        <button
+                          className="btn-icon btn-icon-rose"
+                          onClick={(e) => { e.stopPropagation(); handleLaunchCall(selectedUser, 'video'); }}
+                          disabled={selectedUser.status === 'offline'}
+                          title="Video Stream"
+                        >
+                          <Video size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  selectedCommunity && (
+                    <>
+                      <div className="community-tooltip-cover-wrapper" style={{ cursor: 'pointer' }} onClick={() => { setSelectedNode(null); navigate(`/community-details/${selectedCommunity.id}`); }}>
+                        <img src={selectedCommunity.image} alt={selectedCommunity.name} className="community-tooltip-cover" />
+                        <div className="community-tooltip-host-badge">
+                          <img src={selectedCommunity.host.avatar} alt={selectedCommunity.host.name} className="tooltip-host-avatar" />
+                          <span>by {selectedCommunity.host.name.split(' ')[0]}</span>
+                        </div>
+                        <button className="tooltip-close-btn-overlay" onClick={(e) => { e.stopPropagation(); setSelectedNode(null); }}>
+                          <X size={12} />
+                        </button>
+                      </div>
+
+                      <div className="community-tooltip-details" style={{ cursor: 'pointer' }} onClick={() => { setSelectedNode(null); navigate(`/community-details/${selectedCommunity.id}`); }} title="View Event Details">
+                        <h3 className="community-tooltip-title">{selectedCommunity.name}</h3>
+                        <div className="community-tooltip-meta">
+                          <span>{selectedCommunity.dateStr} at {selectedCommunity.timeStr}</span>
+                          <div style={{ marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <span>{selectedCommunity.distance}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="community-tooltip-attendees-section">
+                        <span className="community-members-label">Members joined</span>
+                        <div className="attendee-stack">
+                          {selectedCommunity.attendees.slice(0, 3).map((attendee, idx) => (
+                            <img
+                              key={idx}
+                              src={attendee.avatar}
+                              alt={attendee.name}
+                              className="attendee-avatar"
+                              style={{ zIndex: 3 - idx }}
+                            />
+                          ))}
+                          {selectedCommunity.attendees.length > 3 && (
+                            <div className="attendee-excess" style={{ zIndex: 0 }}>
+                              +{selectedCommunity.attendees.length - 3}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </>
+                  )
+                )}
               </motion.div>
             )}
           </>

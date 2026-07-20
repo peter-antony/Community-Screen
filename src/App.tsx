@@ -16,6 +16,7 @@ import { CallPage } from './pages/CallPage';
 import { NetworkConstellationPage } from './pages/NetworkConstellationPage';
 import { ExploreCommunitiesPage } from './pages/ExploreCommunitiesPage';
 import { CommunityMapPage } from './pages/CommunityMapPage';
+import { CommunityDetailsPage } from './pages/CommunityDetailsPage';
 
 // Security Route wrappers
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -118,6 +119,16 @@ const AppContent: React.FC = () => {
         element={
           <ProtectedRoute>
             <NetworkConstellationPage />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/community-details/:id" 
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <CommunityDetailsPage />
+            </AppLayout>
           </ProtectedRoute>
         } 
       />

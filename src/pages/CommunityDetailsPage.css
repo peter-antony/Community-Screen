@@ -1,0 +1,436 @@
+/* ========================================================
+   COMMUNITY / EVENT DETAILS PAGE (WEB & TEMPLATE STYLING)
+   ======================================================== */
+
+.community-profile-page {
+  /* Inherits styles from .user-profile-page (padding, margins, alignment) */
+}
+
+/* Custom theme badge avatar representing the community activity type */
+.theme-badge-circle-avatar {
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 4px solid var(--bg-secondary) !important;
+  box-shadow: var(--shadow-glass);
+  width: 120px;
+  height: 120px;
+  margin-top: -60px;
+  background: var(--bg-secondary);
+}
+
+.theme-emoji-profile {
+  font-size: 3.5rem;
+}
+
+/* Button overrides matching User Profile action style */
+.profile-action-controls .btn-primary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.profile-action-controls .btn-secondary.following {
+  background: rgba(16, 185, 129, 0.1) !important;
+  color: var(--accent-green) !important;
+  border: 1px solid rgba(16, 185, 129, 0.2) !important;
+}
+
+.join-count-badge {
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  margin-left: 4px;
+}
+
+.btn-secondary.following .join-count-badge {
+  background: rgba(16, 185, 129, 0.25);
+  color: var(--accent-green);
+}
+
+/* Star Toggle State on profile buttons */
+.btn-icon.bookmarked {
+  background: rgba(245, 158, 11, 0.08) !important;
+  border-color: rgba(245, 158, 11, 0.3) !important;
+  color: #f59e0b !important;
+}
+
+.btn-icon-grey {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-glass);
+  color: var(--text-secondary);
+  transition: all 0.2s;
+}
+
+.btn-icon-grey:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+}
+
+/* About Activity Tab Contents */
+.community-info-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Grid layout for activity properties on wider screens */
+.activity-about-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+@media (min-width: 768px) {
+  .activity-about-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.about-item-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.015);
+  border: 1px solid var(--border-glass);
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.about-item-row:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.about-item-icon-wrapper {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.about-item-icon-wrapper.standard-icon-bg {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-glass);
+}
+
+.item-svg-icon {
+  color: var(--text-secondary);
+}
+
+.about-item-row:hover .item-svg-icon {
+  color: var(--text-primary);
+}
+
+.item-host-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--accent-violet);
+  box-shadow: 0 0 10px rgba(168, 85, 247, 0.2);
+}
+
+/* Avatar overlaps stack */
+.avatar-overlap-circle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.overlap-img {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid var(--bg-primary);
+  margin-right: -10px;
+  object-fit: cover;
+}
+
+.about-item-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.item-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.item-label-sub {
+  font-size: 0.76rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-top: 1px;
+}
+
+.item-value {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.item-arrow-right {
+  color: var(--text-muted);
+  transition: transform 0.2s;
+}
+
+.about-item-row:hover .item-arrow-right {
+  transform: translateX(3px);
+  color: var(--text-primary);
+}
+
+/* Details Description */
+.details-description-statement {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Map Section */
+.details-map-section {
+  width: 100%;
+}
+
+.map-view-card {
+  width: 100%;
+  border-radius: 20px;
+  border: 1px solid var(--border-glass);
+  overflow: hidden;
+  position: relative;
+}
+
+.google-map-mock-bg {
+  width: 100%;
+  height: 200px;
+  background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.map-grid-layer {
+  position: absolute;
+  inset: 0;
+  opacity: 0.15;
+  background-image: 
+    linear-gradient(rgba(255,255,255,0.2) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.2) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.map-glow-pin {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.4);
+  z-index: 5;
+}
+
+.pin-emoji {
+  font-size: 1.15rem;
+}
+
+.pin-pulse-wave {
+  position: absolute;
+  inset: -12px;
+  border-radius: 50%;
+  border: 1.5px solid transparent;
+  animation: map-pin-pulse 2s infinite ease-out;
+  opacity: 0;
+}
+
+@keyframes map-pin-pulse {
+  0% { transform: scale(0.6); opacity: 0.8; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+
+.map-floating-label {
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 8px 14px;
+  border-radius: 12px;
+  backdrop-filter: blur(4px);
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.15);
+}
+
+.venue-name-bold {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.venue-dist-detail {
+  font-size: 0.68rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin-top: 1px;
+}
+
+.btn-open-map-app {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: rgba(255, 255, 255, 0.95);
+  border: none;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #111827;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.25);
+  transition: background 0.2s;
+}
+
+.btn-open-map-app:hover {
+  background: #ffffff;
+}
+
+/* Present Tab / Attendees Lists */
+.present-tab-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.tab-section-heading {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.attendee-list-scroll {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.participant-row-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.005);
+  border: 1px solid var(--border-glass);
+  border-radius: 16px;
+}
+
+.participant-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.participant-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.participant-name {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.participant-role-tag {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--accent-violet);
+  margin-top: 1px;
+}
+
+.participant-role-tag.member {
+  color: var(--accent-cyan);
+}
+
+.participant-status-text {
+  font-size: 0.72rem;
+  color: var(--accent-green);
+  margin-top: 1px;
+  font-weight: 600;
+}
+
+.host-participant {
+  border-color: rgba(168, 85, 247, 0.25);
+  background: rgba(168, 85, 247, 0.02);
+}
+
+/* Circular Close buttons on banner */
+.circular-action-btn.close-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.circular-action-btn.close-btn:hover {
+  background: rgba(15, 23, 42, 0.85);
+  transform: scale(1.05);
+}
+
+/* Details Error fallback styling */
+.community-details-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 60vh;
+  gap: 16px;
+  color: var(--text-primary);
+}
+
+.error-icon {
+  color: var(--accent-rose);
+  animation: bounce 2s infinite;
+}
+
+.btn-back-constellation {
+  background: rgba(6, 182, 212, 0.08);
+  border: 1px solid rgba(6, 182, 212, 0.2);
+  color: var(--accent-cyan);
+  padding: 10px 20px;
+  border-radius: 20px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-back-constellation:hover {
+  background: rgba(6, 182, 212, 0.15);
+}

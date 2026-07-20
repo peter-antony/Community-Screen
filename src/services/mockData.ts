@@ -1,4 +1,4 @@
-import type { User, Message } from '../types';
+import type { User, Message, CommunityItem } from '../types';
 
 export const currentUser: User = {
   id: 'current_user_1',
@@ -405,3 +405,100 @@ export const botResponses: Record<string, string[]> = {
     "Awesome, let's keep iterating!"
   ]
 };
+
+export const mockAttendees = {
+  alex: { name: 'Alex Mercer', avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80' },
+  sophia: { name: 'Sophia Chen', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80' },
+  marcus: { name: 'Marcus Vance', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80' },
+  elena: { name: 'Elena Rostova', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80' },
+  david: { name: 'David Kim', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=150&q=80' },
+  aisha: { name: 'Aisha Rahman', avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=150&q=80' },
+  leo: { name: 'Leo Fontaine', avatar: 'https://images.unsplash.com/photo-1500048993953-d23a436266cf?auto=format&fit=crop&w=150&q=80' }
+};
+
+export const communitiesData: CommunityItem[] = [
+  {
+    id: 'comm_1',
+    name: 'Sunset Trails Hiking Club',
+    theme: 'hiking',
+    image: 'https://images.unsplash.com/photo-1551632811-561732d1e306?auto=format&fit=crop&w=800&q=90',
+    status: 'Today',
+    dateStr: 'Today',
+    timeStr: '5:30 PM',
+    distance: '3.2 miles away',
+    host: mockAttendees.alex,
+    attendees: [mockAttendees.sophia, mockAttendees.marcus, mockAttendees.elena, mockAttendees.david, mockAttendees.aisha]
+  },
+  {
+    id: 'comm_2',
+    name: 'Mixology & Craft Drinks Gathering',
+    theme: 'drinks',
+    image: 'https://images.unsplash.com/photo-1574096079513-d8259312b785?auto=format&fit=crop&w=800&q=90',
+    status: 'Saturday',
+    dateStr: 'Saturday',
+    timeStr: '8:00 PM',
+    distance: '1.5 miles away',
+    host: mockAttendees.sophia,
+    attendees: [mockAttendees.alex, mockAttendees.elena, mockAttendees.aisha, mockAttendees.marcus]
+  },
+  {
+    id: 'comm_3',
+    name: 'AI Creators & Tech Innovators Hack',
+    theme: 'tech',
+    image: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=800&q=90',
+    status: 'Today',
+    dateStr: 'Today',
+    timeStr: '2:00 PM',
+    distance: '0.8 miles away',
+    host: mockAttendees.marcus,
+    attendees: [mockAttendees.alex, mockAttendees.david, mockAttendees.sophia, mockAttendees.elena]
+  },
+  {
+    id: 'comm_4',
+    name: 'Cozy Book Worms Reading Circle',
+    theme: 'books',
+    image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=800&q=90',
+    status: 'Tuesday',
+    dateStr: 'Next Tuesday',
+    timeStr: '6:30 PM',
+    distance: '4.1 miles away',
+    host: mockAttendees.elena,
+    attendees: [mockAttendees.sophia, mockAttendees.aisha, mockAttendees.alex]
+  },
+  {
+    id: 'comm_5',
+    name: 'Urban Cycling Crew Night Ride',
+    theme: 'cycling',
+    image: 'https://images.unsplash.com/photo-1541625602330-2277a4c46182?auto=format&fit=crop&w=800&q=90',
+    status: 'Ended',
+    dateStr: 'Yesterday',
+    timeStr: '9:00 AM',
+    distance: '5.0 miles away',
+    host: mockAttendees.david,
+    attendees: [mockAttendees.marcus, mockAttendees.elena, mockAttendees.aisha, mockAttendees.alex, mockAttendees.sophia, mockAttendees.leo]
+  },
+  {
+    id: 'comm_6',
+    name: 'Zen Yoga & Meditative Mind',
+    theme: 'yoga',
+    image: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&w=800&q=90',
+    status: 'Ended',
+    dateStr: 'Last Sunday',
+    timeStr: '10:00 AM',
+    distance: '2.2 miles away',
+    host: mockAttendees.aisha,
+    attendees: [mockAttendees.elena, mockAttendees.sophia, mockAttendees.alex]
+  },
+  {
+    id: 'comm_7',
+    name: 'Pixel Art & Spline 3D Workshop',
+    theme: 'art',
+    image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=800&q=90',
+    status: 'Thursday',
+    dateStr: 'Next Thursday',
+    timeStr: '4:00 PM',
+    distance: '1.7 miles away',
+    host: mockAttendees.aisha,
+    attendees: [mockAttendees.alex, mockAttendees.marcus, mockAttendees.sophia, mockAttendees.leo]
+  }
+];
