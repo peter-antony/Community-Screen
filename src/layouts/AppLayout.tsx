@@ -19,7 +19,9 @@ import {
   Network,
   Menu,
   Sun,
-  Moon
+  Moon,
+  Compass,
+  Map
 } from 'lucide-react';
 import './AppLayout.css';
 
@@ -37,6 +39,8 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
   const menuItems = [
     { path: '/network', label: 'Network', icon: Network },
     { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { path: '/community-map', label: 'Map View', icon: Map },
+    { path: '/explore-communities', label: 'Discover', icon: Compass },
     { path: '/community', label: 'Community', icon: Users },
     { path: '/chat', label: 'Messages', icon: MessageSquare },
     { path: '/call', label: 'Voice & Video', icon: Phone },
@@ -114,6 +118,8 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
             </button>
             <h2>
               {location.pathname === '/dashboard' && 'Core Console'}
+              {location.pathname === '/community-map' && 'Community Map'}
+              {location.pathname === '/explore-communities' && 'Discover Circles'}
               {location.pathname === '/community' && 'Network Directory'}
               {location.pathname === '/chat' && 'Quantum Encrypted Chats'}
               {location.pathname === '/call' && 'Teleportation Node'}
@@ -216,7 +222,7 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
           )}
         </AnimatePresence>
 
-        <main className="workspace-content">
+        <main className={`workspace-content${location.pathname === '/community-map' ? ' workspace-content--map' : ''}`}>
           {children}
         </main>
       </div>

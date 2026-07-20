@@ -14,6 +14,8 @@ import { UserProfilePage } from './pages/UserProfilePage';
 import { ChatPage } from './pages/ChatPage';
 import { CallPage } from './pages/CallPage';
 import { NetworkConstellationPage } from './pages/NetworkConstellationPage';
+import { ExploreCommunitiesPage } from './pages/ExploreCommunitiesPage';
+import { CommunityMapPage } from './pages/CommunityMapPage';
 
 // Security Route wrappers
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -60,6 +62,26 @@ const AppContent: React.FC = () => {
             </AppLayout>
           </ProtectedRoute>
         } 
+      />
+      <Route 
+        path="/explore-communities" 
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <ExploreCommunitiesPage />
+            </AppLayout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route
+        path="/community-map"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <CommunityMapPage />
+            </AppLayout>
+          </ProtectedRoute>
+        }
       />
       <Route 
         path="/profile/:id" 
