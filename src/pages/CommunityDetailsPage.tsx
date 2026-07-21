@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  X,
   Star,
   Share2,
   Calendar,
@@ -27,81 +26,70 @@ interface ThemeConfig {
 }
 
 const THEME_MAPS: Record<string, ThemeConfig> = {
-  hiking: {
-    type: 'Hiking',
-    emoji: '🥾',
-    color: '#f43f5e',
-    bgColor: '#ffe4e6',
-    aboutText: 'Let\'s hike the beautiful scenic hills and enjoy sunset trails together. All experience levels welcome!',
-    ageText: 'Age 16-65',
-    communityName: 'Sunset Trails Club',
-    languages: 'English, Spanish',
-    mapImage: 'https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/77.5946,12.9716,12,0/400x200?access_token=mock'
-  },
-  drinks: {
-    type: 'Mixology',
-    emoji: '🍹',
-    color: '#f97316',
-    bgColor: '#ffedd5',
-    aboutText: 'Sip, socialize and learn craft cocktail mixing secrets at Happy Brew Koramangala.',
-    ageText: 'Age 21+',
-    communityName: 'BLR House Party Club',
-    languages: 'English, Hindi',
+  football: {
+    type: 'Football',
+    emoji: '⚽',
+    color: '#22c55e',
+    bgColor: '#dcfce7',
+    aboutText: 'Weekly friendly football matches and skill practices in Koramangala Turf. All skill levels welcome!',
+    ageText: 'Age 15-50',
+    communityName: 'Koramangala Football Club',
+    languages: 'English, Kannada, Hindi',
     mapImage: 'https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/77.6245,12.9352,14,0/400x200?access_token=mock'
   },
-  tech: {
-    type: 'Hackathon',
-    emoji: '💻',
-    color: '#3b82f6',
-    bgColor: '#dbeafe',
-    aboutText: 'Build the future of AI & tech. Collaborate on hacking, prototyping, and design systems.',
-    ageText: 'Age 18-45',
-    communityName: 'AI Creators Hub',
-    languages: 'English, Python',
+  cricket: {
+    type: 'Cricket',
+    emoji: '🏏',
+    color: '#eab308',
+    bgColor: '#fef9c3',
+    aboutText: 'Weekend leather ball cricket matches and net practice sessions. Bring your gears!',
+    ageText: 'Age 16-60',
+    communityName: 'Indiranagar Cricket League',
+    languages: 'English, Kannada',
     mapImage: 'https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/77.6408,12.9784,13,0/400x200?access_token=mock'
   },
-  books: {
-    type: 'Book Circle',
-    emoji: '📚',
-    color: '#8b5cf6',
-    bgColor: '#ede9fe',
-    aboutText: 'Read, discuss, and enjoy literature, coffee, and storytelling with cozy book worms.',
-    ageText: 'Age 18-99',
-    communityName: 'Jayanagar Literary Circle',
+  music: {
+    type: 'Music Jam',
+    emoji: '🎵',
+    color: '#a855f7',
+    bgColor: '#f3e8ff',
+    aboutText: 'Acoustic jam sessions, vocals, keyboard, and percussion. Collab with local visual artists & musicians.',
+    ageText: 'Age 18-40',
+    communityName: 'Bangalore Jam Session',
     languages: 'English, Hindi, Kannada',
     mapImage: 'https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/77.5938,12.9250,14,0/400x200?access_token=mock'
   },
-  cycling: {
-    type: 'Cycling Ride',
-    emoji: '🚴',
-    color: '#06b6d4',
-    bgColor: '#cffafe',
-    aboutText: 'Weekend group ride through the green outskirts of Bangalore. Gear and helmet mandatory.',
-    ageText: 'Age 15-60',
-    communityName: 'HSR Cycling Crew',
-    languages: 'English, Kannada',
+  party: {
+    type: 'Club Party',
+    emoji: '🎉',
+    color: '#ec4899',
+    bgColor: '#fce7f3',
+    aboutText: 'Weekend lounge parties, DJ sets, dancing, and networking at premium lounges.',
+    ageText: 'Age 21-45',
+    communityName: 'Happy Brew Bar Party',
+    languages: 'English, Hindi',
     mapImage: 'https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/77.6474,12.9116,13,0/400x200?access_token=mock'
   },
-  yoga: {
-    type: 'Yoga Class',
-    emoji: '🧘',
-    color: '#10b981',
-    bgColor: '#d1fae5',
-    aboutText: 'Morning yoga, pranayama, and mindfulness in the quiet, scenic Cubbon Park gardens.',
-    ageText: 'Age 12-80',
-    communityName: 'Cubbon Park Yoga Circle',
-    languages: 'English, Sanskrit, Hindi',
+  travel: {
+    type: 'Travel Meetup',
+    emoji: '✈️',
+    color: '#06b6d4',
+    bgColor: '#ecfeff',
+    aboutText: 'Plan road trips, backpacking journeys, and explore offbeat trekking spots with travel bloggers.',
+    ageText: 'Age 18-65',
+    communityName: 'Backpackers Travel Club',
+    languages: 'English, Spanish',
     mapImage: 'https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/77.5929,12.9763,14,0/400x200?access_token=mock'
   },
-  art: {
-    type: 'Art Workshop',
-    emoji: '🎨',
-    color: '#f43f5e',
-    bgColor: '#ffe4e6',
-    aboutText: 'Unleash your creative skills. 3D Spline and retro pixel art drawing session.',
-    ageText: 'Age 10-60',
-    communityName: 'Pixel Art Creators',
-    languages: 'English, Visual Art',
+  drinks: {
+    type: 'Craft Beer Tour',
+    emoji: '🍹',
+    color: '#f97316',
+    bgColor: '#ffedd5',
+    aboutText: 'Sip and socialize at premium microbreweries. Explore craft beers and cocktail workshop secrets.',
+    ageText: 'Age 21+',
+    communityName: 'Mixology & Craft Beer Tour',
+    languages: 'English, Hindi',
     mapImage: 'https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/77.6015,12.9756,14,0/400x200?access_token=mock'
   }
 };

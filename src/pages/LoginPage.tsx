@@ -43,21 +43,21 @@ export const LoginPage: React.FC = () => {
               <div className="logo-glow-dot" />
               <span className="logo-text">COMMUNITY</span>
             </div>
-            <h3>Authentication Protocol</h3>
-            <p>Access the network overlay console</p>
+            {/* <h3>Authentication Protocol</h3>
+            <p>Access the network overlay console</p> */}
           </div>
 
           {error && <div className="login-error">{error}</div>}
 
           <form onSubmit={handleSubmit} className="login-form">
             <div className="form-group">
-              <label className="form-label">Simulation Key (Email)</label>
+              <label className="form-label">Email </label>
               <div className="input-with-icon">
                 <Mail size={16} className="input-icon" />
                 <input
                   type="email"
                   className="form-input"
-                  placeholder="alex@community.net"
+                  placeholder="example@domain.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                 />
@@ -65,7 +65,7 @@ export const LoginPage: React.FC = () => {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Passcode</label>
+              <label className="form-label">Password </label>
               <div className="input-with-icon">
                 <Key size={16} className="input-icon" />
                 <input
@@ -80,12 +80,12 @@ export const LoginPage: React.FC = () => {
 
             <button type="submit" className="btn btn-primary w-full btn-login">
               <LogIn size={18} />
-              <span>Initialize Session</span>
+              <span>Login</span>
             </button>
           </form>
 
           {/* Quick Access Roles */}
-          <div className="quick-access-section">
+          {/* <div className="quick-access-section">
             <div className="quick-access-title">
               <span className="line" />
               <span>Quick Access Nodes</span>
@@ -126,7 +126,7 @@ export const LoginPage: React.FC = () => {
                 </div>
               </button>
             </div>
-          </div>
+          </div> */}
         </div>
       </div>
     </div>

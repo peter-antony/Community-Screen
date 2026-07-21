@@ -12,10 +12,8 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
-  Video,
   X,
   PhoneCall,
-  Laptop,
   Network,
   Menu,
   Sun,
@@ -27,7 +25,7 @@ import './AppLayout.css';
 
 export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, logout } = useAuth();
-  const { callState, acceptCall, endCall, users, triggerIncomingCall } = useCommunication();
+  const { callState, acceptCall, endCall } = useCommunication();
   const { theme, toggleTheme } = useTheme();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -51,12 +49,7 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
     navigate('/');
   };
 
-  // Helper to trigger a simulation of an incoming call for testing
-  const handleTriggerSimulatedCall = (type: 'audio' | 'video') => {
-    const availableCallers = users.filter(u => u.status === 'online');
-    const randomCaller = availableCallers[Math.floor(Math.random() * availableCallers.length)] || users[0];
-    triggerIncomingCall(randomCaller, type);
-  };
+
 
   return (
     <div className="app-container" onClick={() => setMobileMenuOpen(false)}>

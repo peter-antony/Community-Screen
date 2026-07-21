@@ -10,8 +10,8 @@
 .app-sidebar {
   width: var(--sidebar-width);
   height: 100vh;
-  display: flex;
-  flex-direction: column;
+  /* display: flex;
+  flex-direction: column; */
   border-radius: 0;
   border-right: 1px solid var(--border-glass);
   border-top: none;
@@ -94,7 +94,7 @@
 
 .sidebar-nav {
   flex: 1;
-  padding: 24px 12px;
+  padding: 12px 12px;
   display: flex;
   flex-direction: column;
   gap: 8px;

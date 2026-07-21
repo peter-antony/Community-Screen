@@ -39,7 +39,7 @@ export interface CommunityMember {
 export interface CommunityItem {
   id: string;
   name: string;
-  theme: 'hiking' | 'drinks' | 'tech' | 'books' | 'cycling' | 'yoga' | 'art';
+  theme: 'football' | 'cricket' | 'music' | 'party' | 'travel' | 'drinks';
   image: string;
   status: 'Today' | 'Saturday' | 'Tuesday' | 'Thursday' | 'Ended';
   dateStr: string;

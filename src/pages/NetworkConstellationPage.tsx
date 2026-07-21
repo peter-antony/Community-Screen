@@ -17,8 +17,7 @@ import {
   UserPlus,
   X,
   Sun,
-  Moon,
-  Users
+  Moon
 } from 'lucide-react';
 import type { User, CommunityItem } from '../types';
 import './NetworkConstellationPage.css';
@@ -73,7 +72,7 @@ const useStageSize = () => {
 export const NetworkConstellationPage: React.FC = () => {
   const { user: authUser, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
-  const { users, toggleFollow, startCall, setActiveChatUserId } = useCommunication();
+  const { toggleFollow, startCall, setActiveChatUserId } = useCommunication();
   const navigate = useNavigate();
 
   const [selectedNode, setSelectedNode] = useState<
@@ -92,23 +91,130 @@ export const NetworkConstellationPage: React.FC = () => {
   const selectedUser = selectedNode?.type === 'user' ? (selectedNode.data as User) : null;
   const selectedCommunity = selectedNode?.type === 'community' ? (selectedNode.data as CommunityItem) : null;
 
-  // Distribute users & communities dynamically: 6 in inner circle, rest in outer circle
-  const satelliteUsers = users.filter(u => u.id !== authUser.id);
-  const constellationCommunities = communitiesData.slice(0, 4); // Show first 4 communities in constellation
+  const THEME_COLORS: Record<string, { border: string; glow: string; text: string; bg: string }> = {
+    football: { border: '#22c55e', glow: 'rgba(34, 197, 94, 0.5)', text: '#22c55e', bg: 'rgba(34, 197, 94, 0.05)' },
+    cricket: { border: '#eab308', glow: 'rgba(234, 179, 8, 0.5)', text: '#eab308', bg: 'rgba(234, 179, 8, 0.05)' },
+    music: { border: '#a855f7', glow: 'rgba(168, 85, 247, 0.5)', text: '#a855f7', bg: 'rgba(168, 85, 247, 0.05)' },
+    party: { border: '#ec4899', glow: 'rgba(236, 72, 153, 0.5)', text: '#ec4899', bg: 'rgba(236, 72, 153, 0.05)' },
+    travel: { border: '#06b6d4', glow: 'rgba(6, 182, 212, 0.5)', text: '#06b6d4', bg: 'rgba(6, 182, 212, 0.05)' },
+    drinks: { border: '#f97316', glow: 'rgba(249, 115, 22, 0.5)', text: '#f97316', bg: 'rgba(249, 115, 22, 0.05)' },
+  };
 
-  const innerOrbitUsers = satelliteUsers.slice(0, Math.min(6, satelliteUsers.length));
-  const outerOrbitUsers = satelliteUsers.slice(Math.min(6, satelliteUsers.length));
+  const themeColorInfo = selectedCommunity
+    ? (THEME_COLORS[selectedCommunity.theme] || THEME_COLORS.music)
+    : THEME_COLORS.music;
 
-  // Mix users and communities in orbits
-  const innerOrbitNodes = [
-    ...innerOrbitUsers.slice(0, 4).map(u => ({ type: 'user' as const, id: u.id, name: u.name, avatar: u.avatar, data: u })),
-    ...constellationCommunities.slice(0, 2).map(c => ({ type: 'community' as const, id: c.id, name: c.name, avatar: c.image, data: c }))
-  ];
+  const customThemeVars = {
+    '--theme-border': themeColorInfo.border,
+    '--theme-glow': themeColorInfo.glow,
+    '--theme-text': themeColorInfo.text,
+    '--theme-bg': themeColorInfo.bg,
+  } as React.CSSProperties;
 
-  const outerOrbitNodes = [
-    ...outerOrbitUsers.map(u => ({ type: 'user' as const, id: u.id, name: u.name, avatar: u.avatar, data: u })),
-    ...constellationCommunities.slice(2).map(c => ({ type: 'community' as const, id: c.id, name: c.name, avatar: c.image, data: c }))
-  ];
+  const generateScatterOffsets = (count: number, maxRadius: number) => {
+    const offsets: { x: number; y: number }[] = [];
+    const ringRadii = [85, 135, 185, 235];
+    const ringCapacities = [8, 6, 6, 4];
+    
+    // Scale radii if maxRadius is smaller (like on mobile)
+    const scale = maxRadius / 240;
+    const scaledRadii = ringRadii.map(r => r * scale);
+    
+    let placed = 0;
+    for (let r = 0; r < scaledRadii.length && placed < count; r++) {
+      const radius = scaledRadii[r];
+      const capacity = Math.min(ringCapacities[r], count - placed);
+      
+      for (let i = 0; i < capacity; i++) {
+        // Distribute angles evenly around this ring
+        const angleOffset = r % 2 === 1 ? Math.PI / capacity : 0;
+        const angle = (2 * Math.PI * i) / capacity - Math.PI / 2 + angleOffset;
+        offsets.push({ x: Math.cos(angle) * radius, y: Math.sin(angle) * radius });
+        placed++;
+      }
+    }
+    // If there are still more members, distribute them on outer concentric rings
+    let extraRing = 0;
+    while (placed < count) {
+      const radius = (235 + (extraRing + 1) * 40) * scale;
+      const capacity = Math.min(8, count - placed);
+      for (let i = 0; i < capacity && placed < count; i++) {
+        const angle = (2 * Math.PI * i) / capacity - Math.PI / 2 + (extraRing % 2 === 1 ? Math.PI / capacity : 0);
+        offsets.push({ x: Math.cos(angle) * radius, y: Math.sin(angle) * radius });
+        placed++;
+      }
+      extraRing++;
+    }
+    return offsets;
+  };
+
+  const getMemberNodeSize = (count: number): number => {
+    if (count <= 8) return 32;
+    if (count <= 16) return 28;
+    if (count <= 30) return 24;
+    return 20;
+  };
+
+  const getProfileIdByName = (name: string): string => {
+    if (name.includes('Alex')) return 'current_user_1';
+    if (name.includes('Sophia')) return 'user_1';
+    if (name.includes('Marcus')) return 'user_2';
+    if (name.includes('Elena')) return 'user_3';
+    if (name.includes('David')) return 'user_4';
+    if (name.includes('Aisha')) return 'user_5';
+    if (name.includes('Leo')) return 'user_6';
+    if (name.includes('Ravi')) return 'user_7';
+    if (name.includes('Priya')) return 'user_8';
+    if (name.includes('Arjun')) return 'user_9';
+    if (name.includes('Meera')) return 'user_10';
+    if (name.includes('Karthik')) return 'user_11';
+    if (name.includes('Nisha')) return 'user_12';
+    if (name.includes('Vikram')) return 'user_13';
+    if (name.includes('Anjali')) return 'user_14';
+    if (name.includes('Rohan')) return 'user_15';
+    if (name.includes('Sneha')) return 'user_16';
+    if (name.includes('Pranav')) return 'user_17';
+    if (name.includes('Divya')) return 'user_18';
+    if (name.includes('Suresh')) return 'user_19';
+    if (name.includes('Lakshmi')) return 'user_20';
+    if (name.includes('Amit')) return 'user_21';
+    return 'user_1';
+  };
+
+  const getCommunityTooltipSize = (item: CommunityItem | null): number => {
+    if (!item) return 300;
+    const membersCount = [item.host, ...item.attendees].length;
+    if (membersCount <= 6) return Math.max(200, 160 + membersCount * 22);
+    if (membersCount <= 12) return 280 + (membersCount - 6) * 15;
+    if (membersCount <= 25) return 370 + (membersCount - 12) * 10;
+    return Math.min(700, 500 + (membersCount - 25) * 5);
+  };
+
+  const THEME_EMOJIS: Record<string, string> = {
+    football: '⚽',
+    cricket: '🏏',
+    music: '🎵',
+    party: '🎉',
+    travel: '✈️',
+    drinks: '🍹'
+  };
+
+  // Distribute communities in orbits: 6 in inner circle, 6 in outer circle
+  const innerOrbitNodes = communitiesData.slice(0, 6).map(c => ({
+    type: 'community' as const,
+    id: c.id,
+    name: c.name,
+    avatar: c.image,
+    data: c
+  }));
+
+  const outerOrbitNodes = communitiesData.slice(6).map(c => ({
+    type: 'community' as const,
+    id: c.id,
+    name: c.name,
+    avatar: c.image,
+    data: c
+  }));
 
 
   const getCoordinates = (index: number, count: number, radius: number) => {
@@ -125,8 +231,8 @@ export const NetworkConstellationPage: React.FC = () => {
       setSelectedNode(prev => prev?.data.id === nodeData.id ? null : { type, data: nodeData } as any);
     } else {
       const rect = e.currentTarget.getBoundingClientRect();
-      const tooltipWidth = 280;
-      const tooltipHeight = type === 'community' ? 320 : 220; // safe estimation of max height
+      const tooltipWidth = type === 'community' ? 340 : 280;
+      const tooltipHeight = type === 'community' ? 600 : 220;
       const headerHeight = 90;
       const margin = 16;
 
@@ -304,11 +410,11 @@ export const NetworkConstellationPage: React.FC = () => {
                 transition={{ delay: 0.1 * idx, type: 'spring' }}
                 onClick={(e) => handleNodeClick(e, node.data, node.type)}
               >
-                <div className={`satellite-glow-ring ${isCommunity ? 'community-glow' : node.data.status}`} />
+                <div className={`satellite-glow-ring ${isCommunity ? `community-glow ${node.data.theme}-glow` : node.data.status}`} />
                 <img src={node.avatar} alt={node.name} className="node-avatar-img" />
                 {isCommunity && (
-                  <div className="node-group-badge">
-                    <Users size={10} />
+                  <div className={`node-group-badge ${node.data.theme}-badge`}>
+                    <span style={{ fontSize: '10px', lineHeight: 1 }}>{THEME_EMOJIS[node.data.theme]}</span>
                   </div>
                 )}
               </motion.div>
@@ -335,11 +441,11 @@ export const NetworkConstellationPage: React.FC = () => {
                 transition={{ delay: 0.2 + 0.05 * idx, type: 'spring' }}
                 onClick={(e) => handleNodeClick(e, node.data, node.type)}
               >
-                <div className={`satellite-glow-ring ${isCommunity ? 'community-glow' : node.data.status}`} />
+                <div className={`satellite-glow-ring ${isCommunity ? `community-glow ${node.data.theme}-glow` : node.data.status}`} />
                 <img src={node.avatar} alt={node.name} className="node-avatar-img" />
                 {isCommunity && (
-                  <div className="node-group-badge">
-                    <Users size={8} />
+                  <div className={`node-group-badge ${node.data.theme}-badge`}>
+                    <span style={{ fontSize: '8px', lineHeight: 1 }}>{THEME_EMOJIS[node.data.theme]}</span>
                   </div>
                 )}
               </motion.div>
@@ -363,20 +469,26 @@ export const NetworkConstellationPage: React.FC = () => {
                   onClick={() => setSelectedNode(null)}
                 />
                 <motion.div
-                  className="mobile-detail-sheet glass-panel"
+                  className={`mobile-detail-sheet glass-panel ${selectedNode.type === 'community' ? 'community-sheet' : ''}`}
                   initial={{ opacity: 0, y: 100 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 100 }}
                   transition={{ type: 'spring', damping: 25, stiffness: 300 }}
                   onClick={(e) => e.stopPropagation()}
+                  style={selectedNode.type === 'community' && selectedCommunity ? {
+                    borderColor: 'var(--theme-border)',
+                    boxShadow: '0 -10px 30px var(--theme-glow)',
+                    background: 'rgba(3, 7, 18, 0.98)',
+                    ...customThemeVars
+                  } : {}}
                 >
-                  <div className="sheet-handle" />
-                  <button className="sheet-close-btn" onClick={() => setSelectedNode(null)}>
-                    <X size={18} />
-                  </button>
-
                   {selectedNode.type === 'user' && selectedUser ? (
                     <>
+                      <div className="sheet-handle" />
+                      <button className="sheet-close-btn" onClick={() => setSelectedNode(null)}>
+                        <X size={18} />
+                      </button>
+
                       <div className="sheet-profile-section">
                         <img
                           src={selectedUser.avatar}
@@ -438,54 +550,80 @@ export const NetworkConstellationPage: React.FC = () => {
                       </button>
                     </>
                   ) : (
-                    selectedCommunity && (
-                      <>
-                        <div className="community-sheet-cover-wrapper" style={{ cursor: 'pointer' }} onClick={() => { setSelectedNode(null); navigate(`/community-details/${selectedCommunity.id}`); }}>
-                          <img src={selectedCommunity.image} alt={selectedCommunity.name} className="community-sheet-cover" />
-                          <div className="community-sheet-host-badge">
-                            <img src={selectedCommunity.host.avatar} alt={selectedCommunity.host.name} className="sheet-host-avatar" />
-                            <span>by {selectedCommunity.host.name.split(' ')[0]}</span>
-                          </div>
-                        </div>
+                    selectedCommunity && (() => {
+                      const mobileMembers = [selectedCommunity.host, ...selectedCommunity.attendees];
+                      const mobileContainerSize = 300;
+                      const mobileMaxRadius = mobileContainerSize / 2;
+                      const mobileOffsets = generateScatterOffsets(mobileMembers.length, mobileMaxRadius);
+                      const mobileNodeSize = getMemberNodeSize(mobileMembers.length);
+                      const scale = mobileMaxRadius / 240;
+                      const ringRadii = [85, 135, 185, 235].map(r => r * scale);
+                      return (
+                        <div className="community-mini-constellation-container" style={{ minHeight: '380px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', position: 'relative' }}>
+                          <button className="community-close-btn-new" onClick={() => setSelectedNode(null)}>
+                            <X size={14} />
+                          </button>
 
-                        <div className="community-sheet-details">
-                          <h3 className="community-sheet-title">{selectedCommunity.name}</h3>
-                          <div className="community-sheet-meta">
-                            <span>{selectedCommunity.dateStr} at {selectedCommunity.timeStr}</span>
-                            <span className="meta-dot">•</span>
-                            <span>{selectedCommunity.distance}</span>
-                          </div>
-                        </div>
-
-                        <div className="community-sheet-attendees-section">
-                          <span className="community-members-label">Members joined</span>
-                          <div className="attendee-stack">
-                            {selectedCommunity.attendees.slice(0, 3).map((attendee, idx) => (
-                              <img
-                                key={idx}
-                                src={attendee.avatar}
-                                alt={attendee.name}
-                                className="attendee-avatar"
-                                style={{ zIndex: 3 - idx }}
+                          <div className="community-mini-constellation" style={{ width: mobileContainerSize, height: mobileContainerSize, minHeight: mobileContainerSize, alignSelf: 'center', position: 'relative' }}>
+                            {/* Orbit Rings */}
+                            {ringRadii.map((radius, rIdx) => (
+                              <div
+                                key={rIdx}
+                                className="mini-orbit-ring"
+                                style={{
+                                  width: radius * 2,
+                                  height: radius * 2,
+                                  borderColor: 'var(--theme-border)',
+                                  opacity: 0.15 + (rIdx * 0.03),
+                                }}
                               />
                             ))}
-                            {selectedCommunity.attendees.length > 3 && (
-                              <div className="attendee-excess" style={{ zIndex: 0 }}>
-                                +{selectedCommunity.attendees.length - 3}
-                              </div>
-                            )}
+
+                            {/* Centered Name */}
+                            <div
+                              className="mini-constellation-center"
+                              onClick={() => { setSelectedNode(null); navigate(`/community-details/${selectedCommunity.id}`); }}
+                            >
+                              <h3>{selectedCommunity.name}</h3>
+                              <span className="view-details-sub">View Details →</span>
+                            </div>
+
+                            {/* Orbiting Member Nodes */}
+                            {mobileMembers.map((member, idx) => {
+                              const offset = mobileOffsets[idx] || { x: 0, y: 0 };
+                              const profileId = getProfileIdByName(member.name);
+                              return (
+                                <div
+                                  key={idx}
+                                  className={`mini-member-node float-anim-${(idx % 3) + 1}`}
+                                  style={{
+                                    width: mobileNodeSize,
+                                    height: mobileNodeSize,
+                                    left: `calc(50% + ${offset.x}px)`,
+                                    top: `calc(50% + ${offset.y}px)`,
+                                  }}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedNode(null);
+                                    navigate(`/profile/${profileId}`);
+                                  }}
+                                  title={`${member.name} (View Profile)`}
+                                >
+                                  <img src={member.avatar} alt={member.name} className="mini-member-img" />
+                                  <span className="mini-member-glow" />
+                                </div>
+                              );
+                            })}
+                          </div>
+
+                          <div className="community-sparkle-ornament">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                              <path d="M12 0L14.8 9.2L24 12L14.8 14.8L12 24L9.2 14.8L0 12L9.2 9.2L12 0Z" />
+                            </svg>
                           </div>
                         </div>
-
-                        <button
-                          className="sheet-profile-link"
-                          style={{ marginTop: '16px' }}
-                          onClick={() => { setSelectedNode(null); navigate(`/community-details/${selectedCommunity.id}`); }}
-                        >
-                          View Event Details →
-                        </button>
-                      </>
-                    )
+                      );
+                    })()
                   )}
                 </motion.div>
               </>
@@ -497,6 +635,14 @@ export const NetworkConstellationPage: React.FC = () => {
                   position: 'fixed',
                   left: tooltipPos.x,
                   top: tooltipPos.y,
+                  ...(selectedNode.type === 'community' && selectedCommunity ? {
+                    width: getCommunityTooltipSize(selectedCommunity),
+                    height: getCommunityTooltipSize(selectedCommunity),
+                    borderColor: 'var(--theme-border)',
+                    boxShadow: '0 0 25px var(--theme-glow), inset 0 0 15px rgba(0, 0, 0, 0.6)',
+                    background: 'rgba(3, 7, 18, 0.98)',
+                  } : {}),
+                  ...customThemeVars
                 }}
                 initial={{ opacity: 0, scale: 0.9, y: 10 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -563,48 +709,82 @@ export const NetworkConstellationPage: React.FC = () => {
                   </>
                 ) : (
                   selectedCommunity && (
-                    <>
-                      <div className="community-tooltip-cover-wrapper" style={{ cursor: 'pointer' }} onClick={() => { setSelectedNode(null); navigate(`/community-details/${selectedCommunity.id}`); }}>
-                        <img src={selectedCommunity.image} alt={selectedCommunity.name} className="community-tooltip-cover" />
-                        <div className="community-tooltip-host-badge">
-                          <img src={selectedCommunity.host.avatar} alt={selectedCommunity.host.name} className="tooltip-host-avatar" />
-                          <span>by {selectedCommunity.host.name.split(' ')[0]}</span>
+                    <div className="community-mini-constellation-container">
+                      <button className="community-close-btn-new" onClick={() => setSelectedNode(null)}>
+                        <X size={14} />
+                      </button>
+
+                      <div className="community-mini-constellation">
+                        {/* Centered Name */}
+                        <div
+                          className="mini-constellation-center"
+                          onClick={() => { setSelectedNode(null); navigate(`/community-details/${selectedCommunity.id}`); }}
+                          title="View Event Details"
+                        >
+                          <h3>{selectedCommunity.name}</h3>
+                          <span className="view-details-sub">View Details →</span>
                         </div>
-                        <button className="tooltip-close-btn-overlay" onClick={(e) => { e.stopPropagation(); setSelectedNode(null); }}>
-                          <X size={12} />
-                        </button>
+
+                        {/* Orbiting Member Nodes */}
+                        {(() => {
+                          const desktopMembers = [selectedCommunity.host, ...selectedCommunity.attendees];
+                          const desktopMaxRadius = 240;
+                          const desktopOffsets = generateScatterOffsets(desktopMembers.length, desktopMaxRadius);
+                          const nodeSize = getMemberNodeSize(desktopMembers.length);
+                          const ringRadii = [85, 135, 185, 235];
+                          return (
+                            <>
+                              {/* Orbit Rings */}
+                              {ringRadii.map((radius, rIdx) => (
+                                <div
+                                  key={rIdx}
+                                  className="mini-orbit-ring"
+                                  style={{
+                                    width: radius * 2,
+                                    height: radius * 2,
+                                    borderColor: 'var(--theme-border)',
+                                    opacity: 0.15 + (rIdx * 0.03),
+                                  }}
+                                />
+                              ))}
+
+                              {/* Orbiting Member Images */}
+                              {desktopMembers.map((member, idx) => {
+                                const offset = desktopOffsets[idx] || { x: 0, y: 0 };
+                                const profileId = getProfileIdByName(member.name);
+                                return (
+                                  <div
+                                    key={idx}
+                                    className={`mini-member-node float-anim-${(idx % 3) + 1}`}
+                                    style={{
+                                      width: nodeSize,
+                                      height: nodeSize,
+                                      left: `calc(50% + ${offset.x}px)`,
+                                      top: `calc(50% + ${offset.y}px)`,
+                                    }}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSelectedNode(null);
+                                      navigate(`/profile/${profileId}`);
+                                    }}
+                                    title={`${member.name} (View Profile)`}
+                                  >
+                                    <img src={member.avatar} alt={member.name} className="mini-member-img" />
+                                    <span className="mini-member-glow" />
+                                  </div>
+                                );
+                              })}
+                            </>
+                          );
+                        })()}
                       </div>
 
-                      <div className="community-tooltip-details" style={{ cursor: 'pointer' }} onClick={() => { setSelectedNode(null); navigate(`/community-details/${selectedCommunity.id}`); }} title="View Event Details">
-                        <h3 className="community-tooltip-title">{selectedCommunity.name}</h3>
-                        <div className="community-tooltip-meta">
-                          <span>{selectedCommunity.dateStr} at {selectedCommunity.timeStr}</span>
-                          <div style={{ marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            <span>{selectedCommunity.distance}</span>
-                          </div>
-                        </div>
+                      <div className="community-sparkle-ornament">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M12 0L14.8 9.2L24 12L14.8 14.8L12 24L9.2 14.8L0 12L9.2 9.2L12 0Z" />
+                        </svg>
                       </div>
-
-                      <div className="community-tooltip-attendees-section">
-                        <span className="community-members-label">Members joined</span>
-                        <div className="attendee-stack">
-                          {selectedCommunity.attendees.slice(0, 3).map((attendee, idx) => (
-                            <img
-                              key={idx}
-                              src={attendee.avatar}
-                              alt={attendee.name}
-                              className="attendee-avatar"
-                              style={{ zIndex: 3 - idx }}
-                            />
-                          ))}
-                          {selectedCommunity.attendees.length > 3 && (
-                            <div className="attendee-excess" style={{ zIndex: 0 }}>
-                              +{selectedCommunity.attendees.length - 3}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </>
+                    </div>
                   )
                 )}
               </motion.div>

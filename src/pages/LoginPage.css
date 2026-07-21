@@ -19,6 +19,7 @@
   padding: 40px 32px;
   position: relative;
   overflow: hidden;
+  border-radius: 16px;
 }
 
 .login-glow-bg {
