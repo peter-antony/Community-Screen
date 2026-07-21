@@ -39,12 +39,12 @@ const useStageSize = () => {
     const size = Math.max(Math.min(horizontalMax, availableH), isMobile ? 260 : 320);
 
     const ratios = isMobile
-      ? { inner: 0.25, outer: 0.44, center: 0.22, innerSat: 0.18, outerSat: 0.1 }
+      ? { inner: 0.29, outer: 0.47, center: 0.18, innerSat: 0.18, outerSat: 0.1 }
       : isTablet
-        ? { inner: 0.24, outer: 0.44, center: 0.20, innerSat: 0.17, outerSat: 0.09 }
+        ? { inner: 0.28, outer: 0.47, center: 0.17, innerSat: 0.17, outerSat: 0.09 }
         : w <= 1024
-          ? { inner: 0.23, outer: 0.43, center: 0.19, innerSat: 0.16, outerSat: 0.085 }
-          : { inner: 0.22, outer: 0.42, center: 0.18, innerSat: 0.16, outerSat: 0.08 };
+          ? { inner: 0.28, outer: 0.46, center: 0.16, innerSat: 0.16, outerSat: 0.085 }
+          : { inner: 0.28, outer: 0.46, center: 0.16, innerSat: 0.16, outerSat: 0.08 };
 
     return {
       stageSize: size,
@@ -115,16 +115,16 @@ export const NetworkConstellationPage: React.FC = () => {
     const offsets: { x: number; y: number }[] = [];
     const ringRadii = [85, 135, 185, 235];
     const ringCapacities = [8, 6, 6, 4];
-    
+
     // Scale radii if maxRadius is smaller (like on mobile)
     const scale = maxRadius / 240;
     const scaledRadii = ringRadii.map(r => r * scale);
-    
+
     let placed = 0;
     for (let r = 0; r < scaledRadii.length && placed < count; r++) {
       const radius = scaledRadii[r];
       const capacity = Math.min(ringCapacities[r], count - placed);
-      
+
       for (let i = 0; i < capacity; i++) {
         // Distribute angles evenly around this ring
         const angleOffset = r % 2 === 1 ? Math.PI / capacity : 0;
@@ -385,7 +385,8 @@ export const NetworkConstellationPage: React.FC = () => {
           >
             <div className="center-node-glow" style={{ width: stage.centerSize * 1.75, height: stage.centerSize * 1.75 }} />
             <div className="center-silhouette">
-              <UserIcon size={stage.centerSize * 0.45} className="silhouette-icon" />
+              <img src={authUser.avatar} alt={authUser.name} className="silhouette-icon" />
+              {/* <UserIcon size={stage.centerSize * 0.45} className="silhouette-icon" /> */}
             </div>
             <span className="node-pulse-ring" />
           </motion.div>
@@ -399,8 +400,8 @@ export const NetworkConstellationPage: React.FC = () => {
                 key={node.id}
                 className={`constellation-node satellite-node inner-sat ${isCommunity ? 'community-node' : ''}`}
                 style={{
-                  width: stage.innerSatSize,
-                  height: stage.innerSatSize,
+                  width: 45,
+                  height: 45,
                   transform: `translate(-50%, -50%)`,
                   left: `calc(50% + ${coords.x}px)`,
                   top: `calc(50% + ${coords.y}px)`
@@ -430,8 +431,8 @@ export const NetworkConstellationPage: React.FC = () => {
                 key={node.id}
                 className={`constellation-node satellite-node outer-sat ${isCommunity ? 'community-node' : ''}`}
                 style={{
-                  width: stage.outerSatSize,
-                  height: stage.outerSatSize,
+                  width: 45,
+                  height: 45,
                   transform: `translate(-50%, -50%)`,
                   left: `calc(50% + ${coords.x}px)`,
                   top: `calc(50% + ${coords.y}px)`
