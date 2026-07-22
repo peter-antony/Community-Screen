@@ -88,9 +88,17 @@
   border: 2px solid var(--bg-secondary);
 }
 
-.contact-status-ring.online { background-color: var(--accent-green); }
-.contact-status-ring.away { background-color: var(--accent-amber); }
-.contact-status-ring.offline { background-color: var(--text-muted); }
+.contact-status-ring.online {
+  background-color: var(--accent-green);
+}
+
+.contact-status-ring.away {
+  background-color: var(--accent-amber);
+}
+
+.contact-status-ring.offline {
+  background-color: var(--text-muted);
+}
 
 .contact-details {
   flex: 1;
@@ -415,11 +423,13 @@
   .contacts-sidebar {
     width: 80px;
   }
+
   .sidebar-search-container h3,
   .channel-count,
   .contact-details {
     display: none;
   }
+
   .contact-item {
     justify-content: center;
     padding: 16px 0;

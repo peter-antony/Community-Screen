@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard,
   Users,
-  MessageSquare,
+  MessageCircleMore,
   Phone,
   LogOut,
   ChevronLeft,
@@ -39,8 +39,9 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
     // { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { path: '/community-map', label: 'Map View', icon: Map },
     { path: '/explore-communities', label: 'Communities', icon: Compass },
+    { path: '/community-chat', label: 'Messages', icon: MessageCircleMore },
     { path: '/community', label: 'Users', icon: Users },
-    { path: '/chat', label: 'Messages', icon: MessageSquare },
+    // { path: '/chat', label: 'Messages', icon: MessageSquare },
     { path: '/call', label: 'Voice & Video', icon: Phone },
   ];
 
@@ -113,6 +114,7 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
               {location.pathname === '/dashboard' && 'Core Console'}
               {location.pathname === '/community-map' && 'Community Map'}
               {location.pathname === '/explore-communities' && ''}
+              {location.pathname === '/community-chat' && ''}
               {location.pathname === '/community' && ''}
               {location.pathname === '/chat' && 'Quantum Encrypted Chats'}
               {location.pathname === '/call' && 'Teleportation Node'}

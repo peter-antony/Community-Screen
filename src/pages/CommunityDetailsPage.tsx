@@ -8,7 +8,9 @@ import {
   Languages,
   ChevronRight,
   Users,
-  Compass
+  Compass,
+  MessageSquare,
+  MessageCircleMore
 } from 'lucide-react';
 import type { CommunityItem } from '../types';
 import './CommunityDetailsPage.css';
@@ -245,6 +247,13 @@ export const CommunityDetailsPage: React.FC = () => {
                 title="Favorite"
               >
                 <Star size={18} fill={isFavorite ? '#f59e0b' : 'none'} stroke={isFavorite ? '#f59e0b' : 'currentColor'} />
+              </button>
+              <button
+                className="btn-icon btn-icon-cyan"
+                onClick={() => navigate(`/community-chat?id=${community.id}`)}
+                title="Community Chat"
+              >
+                <MessageCircleMore size={18} />
               </button>
               <button className="btn-icon btn-icon-cyan" onClick={handleShare} title="Share">
                 <Share2 size={18} />

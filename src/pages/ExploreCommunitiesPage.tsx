@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Compass,
@@ -11,7 +12,8 @@ import {
   Calendar,
   Clock,
   MapPin,
-  Image as ImageIcon
+  Image as ImageIcon,
+  MessageSquare
 } from 'lucide-react';
 import '../assets/css/ExploreCommunitiesPage.css';
 import type { CommunityItem } from '../types';
@@ -230,6 +232,17 @@ export const ExploreCommunitiesPage: React.FC = () => {
   useEffect(() => {
     fetchCommunities();
   }, []);
+
+  useEffect(() => {
+    if (isCreateModalOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isCreateModalOpen]);
 
   // GET - fetch all
   const fetchCommunities = async () => {
@@ -558,155 +571,158 @@ export const ExploreCommunitiesPage: React.FC = () => {
       </div>
 
       {/* CREATE COMMUNITY MODAL */}
-      <AnimatePresence>
-        {isCreateModalOpen && (
-          <div className="modal-backdrop-overlay" onClick={() => setIsCreateModalOpen(false)}>
-            <motion.div
-              className="create-community-modal glass-panel"
-              initial={{ opacity: 0, scale: 0.92, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.92, y: 20 }}
-              transition={{ duration: 0.25, ease: 'easeOut' }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Modal Header */}
-              <div className="modal-header-bar">
-                <div className="modal-header-title">
-                  <Sparkles size={20} className="modal-header-icon" />
-                  <div>
-                    <h3>Create New Community</h3>
-                    <p>Enter details to start a local meetup or interest group</p>
-                  </div>
-                </div>
-                <button
-                  className="modal-close-btn"
-                  onClick={() => setIsCreateModalOpen(false)}
-                >
-                  <X size={20} />
-                </button>
-              </div>
-
-              {/* Modal Form */}
-              <form onSubmit={handleCreateCommunity} className="modal-form-body">
-                <div className="form-group">
-                  <label className="form-label">Community Name *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Bangalore Indie Acoustic Club"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="form-input"
-                  />
-                </div>
-
-                <div className="form-group-row">
-                  <div className="form-group">
-                    <label className="form-label">Category / Theme</label>
-                    <select
-                      value={formData.theme}
-                      onChange={(e) => {
-                        const newTheme = e.target.value as CommunityItem['theme'];
-                        setFormData({
-                          ...formData,
-                          theme: newTheme,
-                          image: PRESET_IMAGES[newTheme][0]
-                        });
-                      }}
-                      className="form-select"
-                    >
-                      <option value="music">🎵 Music & Jam</option>
-                      <option value="football">⚽ Football & Sports</option>
-                      <option value="cricket">🏏 Cricket & Games</option>
-                      <option value="party">🎉 Party & Social</option>
-                      <option value="travel">🏔️ Travel & Adventure</option>
-                      <option value="drinks">🍸 Drinks & Nightlife</option>
-                    </select>
-                  </div>
-
-                  <div className="form-group">
-                    <label className="form-label">Location / Distance</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Koramangala • 1.5 km away"
-                      value={formData.distance}
-                      onChange={(e) => setFormData({ ...formData, distance: e.target.value })}
-                      className="form-input"
-                    />
-                  </div>
-                </div>
-
-                <div className="form-group-row">
-                  <div className="form-group">
-                    <label className="form-label">Date</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Saturday or July 26"
-                      value={formData.dateStr}
-                      onChange={(e) => setFormData({ ...formData, dateStr: e.target.value })}
-                      className="form-input"
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label className="form-label">Time</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. 6:00 PM"
-                      value={formData.timeStr}
-                      onChange={(e) => setFormData({ ...formData, timeStr: e.target.value })}
-                      className="form-input"
-                    />
-                  </div>
-                </div>
-
-                {/* Preset Image Selector */}
-                <div className="form-group">
-                  <label className="form-label">Cover Image</label>
-                  <div className="preset-images-wrapper">
-                    <div className="preset-images-grid">
-                      {PRESET_IMAGES[formData.theme].map((imgUrl, idx) => (
-                        <div
-                          key={idx}
-                          className={`preset-img-thumb ${formData.image === imgUrl || (!formData.image && idx === 0) ? 'selected' : ''}`}
-                          onClick={() => setFormData({ ...formData, image: imgUrl })}
-                        >
-                          <img src={imgUrl} alt={`Preset ${idx}`} />
-                        </div>
-                      ))}
+      {ReactDOM.createPortal(
+        <AnimatePresence>
+          {isCreateModalOpen && (
+            <div className="modal-backdrop-overlay" onClick={() => setIsCreateModalOpen(false)}>
+              <motion.div
+                className="create-community-modal glass-panel"
+                initial={{ opacity: 0, scale: 0.92, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.92, y: 20 }}
+                transition={{ duration: 0.25, ease: 'easeOut' }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Modal Header */}
+                <div className="modal-header-bar">
+                  <div className="modal-header-title">
+                    <Sparkles size={20} className="modal-header-icon" />
+                    <div>
+                      <h3>Create New Community</h3>
+                      <p>Enter details to start a local meetup or interest group</p>
                     </div>
-                    <input
-                      type="text"
-                      placeholder="Or paste custom image URL..."
-                      value={formData.image}
-                      onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-                      className="form-input custom-url-input"
-                    />
                   </div>
-                </div>
-
-                {/* Modal Action Buttons */}
-                <div className="modal-footer-actions">
                   <button
-                    type="button"
-                    className="btn-create-cancel"
+                    className="modal-close-btn"
                     onClick={() => setIsCreateModalOpen(false)}
                   >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isSubmitting || !formData.name.trim()}
-                    className="btn-create-submit"
-                  >
-                    {isSubmitting ? 'Creating...' : 'Create Community'}
+                    <X size={20} />
                   </button>
                 </div>
-              </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+
+                {/* Modal Form */}
+                <form onSubmit={handleCreateCommunity} className="modal-form-body">
+                  <div className="form-group">
+                    <label className="form-label">Community Name *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Bangalore Indie Acoustic Club"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      className="form-input"
+                    />
+                  </div>
+
+                  <div className="form-group-row">
+                    <div className="form-group">
+                      <label className="form-label">Category / Theme</label>
+                      <select
+                        value={formData.theme}
+                        onChange={(e) => {
+                          const newTheme = e.target.value as CommunityItem['theme'];
+                          setFormData({
+                            ...formData,
+                            theme: newTheme,
+                            image: PRESET_IMAGES[newTheme][0]
+                          });
+                        }}
+                        className="form-select"
+                      >
+                        <option value="music">🎵 Music & Jam</option>
+                        <option value="football">⚽ Football & Sports</option>
+                        <option value="cricket">🏏 Cricket & Games</option>
+                        <option value="party">🎉 Party & Social</option>
+                        <option value="travel">🏔️ Travel & Adventure</option>
+                        <option value="drinks">🍸 Drinks & Nightlife</option>
+                      </select>
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label">Location / Distance</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Koramangala • 1.5 km away"
+                        value={formData.distance}
+                        onChange={(e) => setFormData({ ...formData, distance: e.target.value })}
+                        className="form-input"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="form-group-row">
+                    <div className="form-group">
+                      <label className="form-label">Date</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Saturday or July 26"
+                        value={formData.dateStr}
+                        onChange={(e) => setFormData({ ...formData, dateStr: e.target.value })}
+                        className="form-input"
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label">Time</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. 6:00 PM"
+                        value={formData.timeStr}
+                        onChange={(e) => setFormData({ ...formData, timeStr: e.target.value })}
+                        className="form-input"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Preset Image Selector */}
+                  <div className="form-group">
+                    <label className="form-label">Cover Image</label>
+                    <div className="preset-images-wrapper">
+                      <div className="preset-images-grid">
+                        {PRESET_IMAGES[formData.theme].map((imgUrl, idx) => (
+                          <div
+                            key={idx}
+                            className={`preset-img-thumb ${formData.image === imgUrl || (!formData.image && idx === 0) ? 'selected' : ''}`}
+                            onClick={() => setFormData({ ...formData, image: imgUrl })}
+                          >
+                            <img src={imgUrl} alt={`Preset ${idx}`} />
+                          </div>
+                        ))}
+                      </div>
+                      <input
+                        type="text"
+                        placeholder="Or paste custom image URL..."
+                        value={formData.image}
+                        onChange={(e) => setFormData({ ...formData, image: e.target.value })}
+                        className="form-input custom-url-input"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Modal Action Buttons */}
+                  <div className="modal-footer-actions">
+                    <button
+                      type="button"
+                      className="btn-create-cancel"
+                      onClick={() => setIsCreateModalOpen(false)}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isSubmitting || !formData.name.trim()}
+                      className="btn-create-submit"
+                    >
+                      {isSubmitting ? 'Creating...' : 'Create Community'}
+                    </button>
+                  </div>
+                </form>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
     </div>
   );
 };

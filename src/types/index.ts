@@ -22,6 +22,10 @@ export interface Message {
   timestamp: string; // ISO string or simple display time
   isRead: boolean;
   type: 'text' | 'image' | 'call_log';
+  isGroup?: boolean;
+  communityId?: string;
+  senderName?: string;
+  senderAvatar?: string;
 }
 
 export interface CallState {

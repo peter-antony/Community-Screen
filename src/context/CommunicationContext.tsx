@@ -1,27 +1,31 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
-import type { User, Message, CallState } from '../types';
+import type { User, Message, CallState, CommunityItem } from '../types';
 import { mockMessages as initialMessages, botResponses } from '../services/mockData';
 import { supabase } from '../supabaseClient';
 
 interface CommunicationContextType {
   users: User[];
+  communities: CommunityItem[];
   messages: Message[];
   callState: CallState;
   activeChatUserId: string | null;
   isTyping: boolean;
   sendMessage: (content: string) => void;
+  sendGroupMessage: (communityId: string, content: string) => void;
   startCall: (user: User, type: 'audio' | 'video') => void;
   acceptCall: () => void;
   endCall: () => void;
   toggleFollow: (userId: string) => void;
   setActiveChatUserId: (userId: string | null) => void;
   triggerIncomingCall: (user: User, type: 'audio' | 'video') => void;
+  fetchCommunities: () => Promise<void>;
 }
 
 const CommunicationContext = createContext<CommunicationContextType | undefined>(undefined);
 
 export const CommunicationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [users, setUsers] = useState<User[]>([]);
+  const [communities, setCommunities] = useState<CommunityItem[]>([]);
 
   const [messages, setMessages] = useState<Message[]>(() => {
     const saved = localStorage.getItem('community_messages');
@@ -43,8 +47,8 @@ export const CommunicationProvider: React.FC<{ children: React.ReactNode }> = ({
   const botTypingTimerRef = useRef<any>(null);
 
   const fetchUsers = async () => {
-    const { data, error } = await supabase.from('posts').select('*')
-    if (error) return console.error(error)
+    const { data, error } = await supabase.from('posts').select('*');
+    if (error) return console.error(error);
 
     const mapped = data.map((u) => ({
       id: u.id,
@@ -60,14 +64,36 @@ export const CommunicationProvider: React.FC<{ children: React.ReactNode }> = ({
       followingCount: u.following_count,
       skills: u.skills,
       isFollowing: u.is_following,
-    }))
+    }));
 
-    setUsers(mapped)
-  }
+    setUsers(mapped);
+  };
 
   useEffect(() => {
     fetchUsers();
+    fetchCommunities();
   }, []);
+
+  const fetchCommunities = async () => {
+    const { data, error } = await supabase.from('community_list').select('*');
+    if (error) return console.error(error);
+
+    if (data) {
+      const mapped: CommunityItem[] = data.map((c) => ({
+        id: c.id,
+        name: c.name,
+        theme: c.theme,
+        image: c.image || c.image_url,
+        status: c.status,
+        dateStr: c.date_str || c.dateStr || '',
+        timeStr: c.time_str || c.timeStr || '',
+        distance: c.distance,
+        host: typeof c.host === 'string' ? JSON.parse(c.host) : c.host,
+        attendees: typeof c.attendees === 'string' ? JSON.parse(c.attendees) : (c.attendees || []),
+      }));
+      setCommunities(mapped);
+    }
+  };
 
   // Sync users to LocalStorage
   // useEffect(() => {
@@ -124,6 +150,7 @@ export const CommunicationProvider: React.FC<{ children: React.ReactNode }> = ({
     );
   };
 
+  // Direct 1-on-1 Message Sending
   const sendMessage = (content: string) => {
     if (!activeChatUserId) return;
 
@@ -164,6 +191,73 @@ export const CommunicationProvider: React.FC<{ children: React.ReactNode }> = ({
         setMessages((prev) => [...prev, botMsg]);
       }, 1500); // typing duration
     }, 1000); // delay before typing starts
+  };
+
+  // Community Group Message Sending
+  const sendGroupMessage = (communityId: string, content: string) => {
+    if (!communityId) return;
+
+    const newGroupMsg: Message = {
+      id: `msg_grp_${Date.now()}`,
+      senderId: 'current_user_1',
+      receiverId: communityId,
+      communityId: communityId,
+      isGroup: true,
+      content,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      isRead: true,
+      type: 'text',
+      senderName: 'Alex Mercer',
+      senderAvatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80'
+    };
+
+    setMessages((prev) => [...prev, newGroupMsg]);
+
+    // Simulate Group Member Response
+    if (botReplyTimerRef.current) clearTimeout(botReplyTimerRef.current);
+    if (botTypingTimerRef.current) clearTimeout(botTypingTimerRef.current);
+
+    botTypingTimerRef.current = setTimeout(() => {
+      setIsTyping(true);
+
+      botReplyTimerRef.current = setTimeout(() => {
+        setIsTyping(false);
+        const activeComm = communities.find((c) => c.id === communityId);
+        const membersList = activeComm?.attendees?.length
+          ? activeComm.attendees
+          : [
+            { name: 'Sophia Chen', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150' },
+            { name: 'Marcus Vance', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150' },
+            { name: 'Elena Rostova', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150' }
+          ];
+
+        const randomMember = membersList[Math.floor(Math.random() * membersList.length)];
+        const sampleResponses = [
+          'That sounds amazing! Count me in.',
+          'Awesome initiative! Looking forward to seeing everyone there.',
+          'Great plan! Let us know if we need to bring anything.',
+          'Thanks for sharing! See you all soon 🎉',
+          'I will be joining as well!'
+        ];
+        const randomText = sampleResponses[Math.floor(Math.random() * sampleResponses.length)];
+
+        const botGroupMsg: Message = {
+          id: `msg_grp_${Date.now() + 1}`,
+          senderId: `grp_bot_${Date.now()}`,
+          receiverId: communityId,
+          communityId: communityId,
+          isGroup: true,
+          content: randomText,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          isRead: false,
+          type: 'text',
+          senderName: randomMember.name,
+          senderAvatar: randomMember.avatar
+        };
+
+        setMessages((prev) => [...prev, botGroupMsg]);
+      }, 1500);
+    }, 1000);
   };
 
   const startCall = (user: User, type: 'audio' | 'video') => {
@@ -238,17 +332,20 @@ export const CommunicationProvider: React.FC<{ children: React.ReactNode }> = ({
     <CommunicationContext.Provider
       value={{
         users,
+        communities,
         messages,
         callState,
         activeChatUserId,
         isTyping,
         sendMessage,
+        sendGroupMessage,
         startCall,
         acceptCall,
         endCall,
         toggleFollow,
         setActiveChatUserId,
         triggerIncomingCall,
+        fetchCommunities,
       }}
     >
       {children}

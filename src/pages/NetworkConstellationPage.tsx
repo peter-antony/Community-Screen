@@ -148,33 +148,47 @@ export const NetworkConstellationPage: React.FC = () => {
 
   const generateScatterOffsets = (count: number, maxRadius: number) => {
     const offsets: { x: number; y: number }[] = [];
-    const ringRadii = [85, 135, 185, 235];
-    const ringCapacities = [8, 6, 6, 4];
+    const nodeSize = getMemberNodeSize(count);
+    const nodeRadius = nodeSize / 2;
 
-    // Scale radii if maxRadius is smaller (like on mobile)
-    const scale = maxRadius / 240;
-    const scaledRadii = ringRadii.map(r => r * scale);
+    const R_min = count <= 3 ? 75 : 82;
+    const R_max = Math.max(R_min + 15, maxRadius - (nodeRadius + 18));
+
+    let ringRadii: number[] = [];
+    if (count <= 6) {
+      ringRadii = [(R_min + R_max) / 2];
+    } else if (count <= 14) {
+      ringRadii = [R_min + 5, R_max];
+    } else {
+      ringRadii = [R_min, R_min + (R_max - R_min) * 0.52, R_max];
+    }
+
+    const ringCapacities = [8, 8, 8, 8];
 
     let placed = 0;
-    for (let r = 0; r < scaledRadii.length && placed < count; r++) {
-      const radius = scaledRadii[r];
+    for (let r = 0; r < ringRadii.length && placed < count; r++) {
+      const radius = ringRadii[r];
       const capacity = Math.min(ringCapacities[r], count - placed);
 
       for (let i = 0; i < capacity; i++) {
-        // Distribute angles evenly around this ring
-        const angleOffset = r % 2 === 1 ? Math.PI / capacity : 0;
+        let angleOffset = r % 2 === 1 ? Math.PI / capacity : 0;
+        if (capacity === 2) {
+          angleOffset = Math.PI / 4;
+        }
+
         const angle = (2 * Math.PI * i) / capacity - Math.PI / 2 + angleOffset;
         offsets.push({ x: Math.cos(angle) * radius, y: Math.sin(angle) * radius });
         placed++;
       }
     }
-    // If there are still more members, distribute them on outer concentric rings
+
     let extraRing = 0;
     while (placed < count) {
-      const radius = (235 + (extraRing + 1) * 40) * scale;
+      const radius = R_max + (extraRing + 1) * 35;
       const capacity = Math.min(8, count - placed);
       for (let i = 0; i < capacity && placed < count; i++) {
-        const angle = (2 * Math.PI * i) / capacity - Math.PI / 2 + (extraRing % 2 === 1 ? Math.PI / capacity : 0);
+        const angleOffset = capacity === 2 ? Math.PI / 4 : (extraRing % 2 === 1 ? Math.PI / capacity : 0);
+        const angle = (2 * Math.PI * i) / capacity - Math.PI / 2 + angleOffset;
         offsets.push({ x: Math.cos(angle) * radius, y: Math.sin(angle) * radius });
         placed++;
       }
@@ -184,10 +198,10 @@ export const NetworkConstellationPage: React.FC = () => {
   };
 
   const getMemberNodeSize = (count: number): number => {
-    if (count <= 8) return 32;
+    if (count <= 3) return 40;
+    if (count <= 8) return 34;
     if (count <= 16) return 28;
-    if (count <= 30) return 24;
-    return 20;
+    return 24;
   };
 
   const getProfileIdByName = (name: string): string => {
@@ -217,12 +231,13 @@ export const NetworkConstellationPage: React.FC = () => {
   };
 
   const getCommunityTooltipSize = (item: CommunityItem | null): number => {
-    if (!item) return 300;
+    if (!item) return 280;
     const membersCount = [item.host, ...item.attendees].length;
-    if (membersCount <= 6) return Math.max(200, 160 + membersCount * 22);
-    if (membersCount <= 12) return 280 + (membersCount - 6) * 15;
-    if (membersCount <= 25) return 370 + (membersCount - 12) * 10;
-    return Math.min(700, 500 + (membersCount - 25) * 5);
+    if (membersCount <= 3) return 280;
+    if (membersCount <= 6) return 320;
+    if (membersCount <= 12) return 380;
+    if (membersCount <= 20) return 440;
+    return Math.min(640, 480 + (membersCount - 20) * 6);
   };
 
   const THEME_EMOJIS: Record<string, string> = {
@@ -266,8 +281,8 @@ export const NetworkConstellationPage: React.FC = () => {
       setSelectedNode(prev => prev?.data.id === nodeData.id ? null : { type, data: nodeData } as any);
     } else {
       const rect = e.currentTarget.getBoundingClientRect();
-      const tooltipWidth = type === 'community' ? 340 : 280;
-      const tooltipHeight = type === 'community' ? 600 : 220;
+      const tooltipWidth = type === 'community' ? getCommunityTooltipSize(nodeData as CommunityItem) : 280;
+      const tooltipHeight = type === 'community' ? getCommunityTooltipSize(nodeData as CommunityItem) : 220;
       const headerHeight = 90;
       const margin = 16;
 
@@ -588,12 +603,15 @@ export const NetworkConstellationPage: React.FC = () => {
                   ) : (
                     selectedCommunity && (() => {
                       const mobileMembers = [selectedCommunity.host, ...selectedCommunity.attendees];
-                      const mobileContainerSize = 300;
+                      const mobileContainerSize = 320;
                       const mobileMaxRadius = mobileContainerSize / 2;
                       const mobileOffsets = generateScatterOffsets(mobileMembers.length, mobileMaxRadius);
                       const mobileNodeSize = getMemberNodeSize(mobileMembers.length);
-                      const scale = mobileMaxRadius / 240;
-                      const ringRadii = [85, 135, 185, 235].map(r => r * scale);
+                      const safeRadius = Math.max(70, mobileMaxRadius - 55);
+                      const ringRadii = [
+                        mobileMembers.length <= 3 ? safeRadius * 0.75 : safeRadius * 0.65,
+                        safeRadius
+                      ];
                       return (
                         <div className="community-mini-constellation-container" style={{ minHeight: '380px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', position: 'relative' }}>
                           <button className="community-close-btn-new" onClick={() => setSelectedNode(null)}>
@@ -764,10 +782,16 @@ export const NetworkConstellationPage: React.FC = () => {
                         {/* Orbiting Member Nodes */}
                         {(() => {
                           const desktopMembers = [selectedCommunity.host, ...selectedCommunity.attendees];
-                          const desktopMaxRadius = 240;
+                          const tooltipSize = getCommunityTooltipSize(selectedCommunity);
+                          const desktopMaxRadius = tooltipSize / 2;
                           const desktopOffsets = generateScatterOffsets(desktopMembers.length, desktopMaxRadius);
                           const nodeSize = getMemberNodeSize(desktopMembers.length);
-                          const ringRadii = [85, 135, 185, 235];
+                          const safeRadius = Math.max(92, desktopMaxRadius - (nodeSize / 2 + 30));
+                          const ringRadii = [
+                            safeRadius,
+                            safeRadius * 1.35,
+                            safeRadius * 1.65
+                          ].slice(0, Math.ceil(desktopMembers.length / 8));
                           return (
                             <>
                               {/* Orbit Rings */}

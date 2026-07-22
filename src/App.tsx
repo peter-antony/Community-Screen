@@ -18,6 +18,7 @@ import { ExploreCommunitiesPage } from './pages/ExploreCommunitiesPage';
 import { CommunityMapPage } from './pages/CommunityMapPage';
 import { CommunityDetailsPage } from './pages/CommunityDetailsPage';
 import SignupPage from './pages/SignupPage';
+import { CommunityChatPage } from './pages/CommunityChatPage';
 
 // Security Route wrappers
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -51,13 +52,13 @@ const AppContent: React.FC = () => {
           </PublicRoute>
         }
       />
-      <Route 
-        path="/signup" 
+      <Route
+        path="/signup"
         element={
           <PublicRoute>
             <SignupPage />
           </PublicRoute>
-        } 
+        }
       />
 
       {/* Protected Console Workspace (Wrapped in AppLayout) */}
@@ -117,6 +118,16 @@ const AppContent: React.FC = () => {
           <ProtectedRoute>
             <AppLayout>
               <ChatPage />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/community-chat"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <CommunityChatPage />
             </AppLayout>
           </ProtectedRoute>
         }
