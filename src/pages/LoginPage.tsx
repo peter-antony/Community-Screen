@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { CanvasBackground } from '../components/CanvasBackground';
-import { LogIn, Key, Mail, Terminal, Paintbrush, Globe } from 'lucide-react';
+import { LogIn, Key, Mail } from 'lucide-react';
 import './LoginPage.css';
 
 export const LoginPage: React.FC = () => {
@@ -25,10 +25,10 @@ export const LoginPage: React.FC = () => {
     navigate('/network');
   };
 
-  const handleQuickLogin = (role: 'creative_developer' | 'designer' | 'guest') => {
-    login(role);
-    navigate('/network');
-  };
+  // const handleQuickLogin = (role: 'creative_developer' | 'designer' | 'guest') => {
+  //   login(role);
+  //   navigate('/network');
+  // };
 
   return (
     <div className="login-page">

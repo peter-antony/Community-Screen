@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Star,
@@ -10,8 +10,9 @@ import {
   Users,
   Compass
 } from 'lucide-react';
-import { communitiesData } from '../services/mockData';
+import type { CommunityItem } from '../types';
 import './CommunityDetailsPage.css';
+import { supabase } from '../supabaseClient';
 
 interface ThemeConfig {
   type: string;
@@ -101,8 +102,42 @@ export const CommunityDetailsPage: React.FC = () => {
   const [isJoined, setIsJoined] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
 
+  const [communities, setCommunities] = useState<CommunityItem[]>([])
+
+  useEffect(() => {
+    console.log("communities: ", communities)
+    fetchCommunities()
+  }, [])
+
+  // GET - fetch all
+  const fetchCommunities = async () => {
+    console.log("fetched communities...")
+    const { data, error } = await supabase
+      .from('community_list')
+      .select('*')
+    console.log("data success ==", data);
+    console.log("error ==", error);
+    if (error) {
+      console.error(error)
+    } else if (data) {
+      const mapped = data.map((c) => ({
+        id: c.id,
+        name: c.name,
+        theme: c.theme,
+        image: c.image || c.image_url,
+        status: c.status,
+        dateStr: c.date_str || c.dateStr || '',
+        timeStr: c.time_str || c.timeStr || '',
+        distance: c.distance,
+        host: typeof c.host === 'string' ? JSON.parse(c.host) : c.host,
+        attendees: typeof c.attendees === 'string' ? JSON.parse(c.attendees) : (c.attendees || []),
+      }))
+      setCommunities(mapped)
+    }
+  }
+
   // Find community details
-  const community = communitiesData.find(c => c.id === id);
+  const community = communities.find(c => c.id === id);
 
   if (!community) {
     return (
@@ -118,6 +153,27 @@ export const CommunityDetailsPage: React.FC = () => {
 
   // Get dynamic config based on theme, fallback if needed
   const config = THEME_MAPS[community.theme] || THEME_MAPS.drinks;
+
+  // Extract coordinates from config.mapImage URL
+  const getCoordinates = (mapImageUrl: string) => {
+    const match = mapImageUrl.match(/static\/([\d.-]+),([\d.-]+)/);
+    if (match) {
+      // Mapbox uses longitude,latitude -> Google Maps uses latitude,longitude
+      const lng = match[1];
+      const lat = match[2];
+      return { lat, lng };
+    }
+    return null;
+  };
+
+  const coords = getCoordinates(config.mapImage);
+  const mapUrl = coords
+    ? `https://maps.google.com/maps?q=${coords.lat},${coords.lng}&hl=en&z=15&ie=UTF8&iwloc=&output=embed`
+    : `https://maps.google.com/maps?q=${encodeURIComponent(community.name + ', Bangalore')}&hl=en&z=15&ie=UTF8&iwloc=&output=embed`;
+
+  const externalMapUrl = coords
+    ? `https://www.google.com/maps/search/?api=1&query=${coords.lat},${coords.lng}`
+    : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(community.name + ', Bangalore')}`;
 
   const handleShare = () => {
     navigator.clipboard.writeText(window.location.href);
@@ -328,17 +384,17 @@ export const CommunityDetailsPage: React.FC = () => {
               <div className="details-map-section">
                 <div className="map-view-card">
                   <div className="google-map-mock-bg">
-                    <div className="map-grid-layer" />
-                    <div className="map-glow-pin" style={{ background: config.color }}>
-                      <span className="pin-emoji">{config.emoji}</span>
-                      <span className="pin-pulse-wave" style={{ borderColor: config.color }} />
-                    </div>
-                    <div className="map-floating-label">
-                      <span className="venue-name-bold">{community.name.split(' ')[0]}</span>
-                      <span className="venue-dist-detail">{community.distance}</span>
-                    </div>
+                    <iframe
+                      title="Google Map Location"
+                      width="100%"
+                      height="100%"
+                      style={{ border: 0 }}
+                      loading="lazy"
+                      src={mapUrl}
+                      allowFullScreen
+                    ></iframe>
                   </div>
-                  <button className="btn-open-map-app" onClick={() => window.open('https://maps.google.com')}>
+                  <button className="btn-open-map-app" onClick={() => window.open(externalMapUrl, '_blank')}>
                     Maps <Share2 size={12} style={{ marginLeft: '4px' }} />
                   </button>
                 </div>

@@ -95,7 +95,7 @@ export const LandingPage: React.FC = () => {
         </motion.div>
 
         {/* Floating Features Grid */}
-        <motion.section 
+        <motion.section
           className="features-section"
           initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
@@ -110,8 +110,8 @@ export const LandingPage: React.FC = () => {
             {featureCards.map((feat, index) => {
               const Icon = feat.icon;
               return (
-                <div 
-                  key={index} 
+                <div
+                  key={index}
                   className={`feature-card glass-panel glass-panel-hover float-animation`}
                   style={{ animationDelay: `${index * 1.5}s` }}
                 >

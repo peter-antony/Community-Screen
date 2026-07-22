@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 import type { User, CommunityItem } from '../types';
 import './NetworkConstellationPage.css';
-import { communitiesData } from '../services/mockData';
+import { supabase } from '../supabaseClient';
 
 // Hook to get responsive stage dimensions — always fits within viewport
 const useStageSize = () => {
@@ -74,6 +74,41 @@ export const NetworkConstellationPage: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
   const { toggleFollow, startCall, setActiveChatUserId } = useCommunication();
   const navigate = useNavigate();
+
+  const [communities, setCommunities] = useState<CommunityItem[]>([])
+
+  useEffect(() => {
+    console.log("communities: ", communities)
+    fetchCommunities();
+  }, []);
+
+  // GET - fetch all
+  const fetchCommunities = async () => {
+    console.log("fetched communities...")
+    const { data, error } = await supabase
+      .from('community_list')
+      .select('*')
+    console.log("data success ==", data);
+    console.log("error ==", error);
+    if (error) {
+      console.error(error)
+    } else if (data) {
+      const mapped = data.map((c) => ({
+        id: c.id,
+        name: c.name,
+        theme: c.theme,
+        image: c.image || c.image_url,
+        status: c.status,
+        dateStr: c.date_str || c.dateStr || '',
+        timeStr: c.time_str || c.timeStr || '',
+        distance: c.distance,
+        host: typeof c.host === 'string' ? JSON.parse(c.host) : c.host,
+        attendees: typeof c.attendees === 'string' ? JSON.parse(c.attendees) : (c.attendees || []),
+      }))
+      setCommunities(mapped)
+    }
+  }
+
 
   const [selectedNode, setSelectedNode] = useState<
     | { type: 'user'; data: User }
@@ -200,7 +235,7 @@ export const NetworkConstellationPage: React.FC = () => {
   };
 
   // Distribute communities in orbits: 6 in inner circle, 6 in outer circle
-  const innerOrbitNodes = communitiesData.slice(0, 6).map(c => ({
+  const innerOrbitNodes = communities.slice(0, 6).map(c => ({
     type: 'community' as const,
     id: c.id,
     name: c.name,
@@ -208,7 +243,7 @@ export const NetworkConstellationPage: React.FC = () => {
     data: c
   }));
 
-  const outerOrbitNodes = communitiesData.slice(6).map(c => ({
+  const outerOrbitNodes = communities.slice(6).map(c => ({
     type: 'community' as const,
     id: c.id,
     name: c.name,

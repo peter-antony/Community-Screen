@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import type { User, Message, CallState } from '../types';
-import { mockUsers as initialUsers, mockMessages as initialMessages, botResponses } from '../services/mockData';
+import { mockMessages as initialMessages, botResponses } from '../services/mockData';
+import { supabase } from '../supabaseClient';
 
 interface CommunicationContextType {
   users: User[];
@@ -20,19 +21,7 @@ interface CommunicationContextType {
 const CommunicationContext = createContext<CommunicationContextType | undefined>(undefined);
 
 export const CommunicationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [users, setUsers] = useState<User[]>(() => {
-    const saved = localStorage.getItem('community_users');
-    if (!saved) return initialUsers;
-    try {
-      const savedUsers: User[] = JSON.parse(saved);
-      // Build a map of saved user state so we preserve follow toggles etc.
-      const savedMap = new Map(savedUsers.map(u => [u.id, u]));
-      // Always start from the full latest mockData list, overlaying saved state
-      return initialUsers.map(u => savedMap.get(u.id) ?? u);
-    } catch {
-      return initialUsers;
-    }
-  });
+  const [users, setUsers] = useState<User[]>([]);
 
   const [messages, setMessages] = useState<Message[]>(() => {
     const saved = localStorage.getItem('community_messages');
@@ -53,10 +42,37 @@ export const CommunicationProvider: React.FC<{ children: React.ReactNode }> = ({
   const botReplyTimerRef = useRef<any>(null);
   const botTypingTimerRef = useRef<any>(null);
 
-  // Sync users to LocalStorage
+  const fetchUsers = async () => {
+    const { data, error } = await supabase.from('users').select('*')
+    if (error) return console.error(error)
+
+    const mapped = data.map((u) => ({
+      id: u.id,
+      name: u.name,
+      username: u.username,
+      role: u.role,
+      location: u.location,
+      bio: u.bio,
+      avatar: u.avatar,
+      coverImage: u.cover_image,
+      status: u.status,
+      followersCount: u.followers_count,
+      followingCount: u.following_count,
+      skills: u.skills,
+      isFollowing: u.is_following,
+    }))
+
+    setUsers(mapped)
+  }
+
   useEffect(() => {
-    localStorage.setItem('community_users', JSON.stringify(users));
-  }, [users]);
+    fetchUsers();
+  }, []);
+
+  // Sync users to LocalStorage
+  // useEffect(() => {
+  //   localStorage.setItem('community_users', JSON.stringify(users));
+  // }, [users]);
 
   // Sync messages to LocalStorage
   useEffect(() => {
@@ -129,7 +145,7 @@ export const CommunicationProvider: React.FC<{ children: React.ReactNode }> = ({
 
     botTypingTimerRef.current = setTimeout(() => {
       setIsTyping(true);
-      
+
       botReplyTimerRef.current = setTimeout(() => {
         setIsTyping(false);
         const responses = botResponses[activeChatUserId] || botResponses.default;
