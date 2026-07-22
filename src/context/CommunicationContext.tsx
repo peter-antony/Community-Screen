@@ -43,7 +43,7 @@ export const CommunicationProvider: React.FC<{ children: React.ReactNode }> = ({
   const botTypingTimerRef = useRef<any>(null);
 
   const fetchUsers = async () => {
-    const { data, error } = await supabase.from('users').select('*')
+    const { data, error } = await supabase.from('posts').select('*')
     if (error) return console.error(error)
 
     const mapped = data.map((u) => ({

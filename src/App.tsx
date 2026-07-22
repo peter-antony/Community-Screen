@@ -17,6 +17,7 @@ import { NetworkConstellationPage } from './pages/NetworkConstellationPage';
 import { ExploreCommunitiesPage } from './pages/ExploreCommunitiesPage';
 import { CommunityMapPage } from './pages/CommunityMapPage';
 import { CommunityDetailsPage } from './pages/CommunityDetailsPage';
+import SignupPage from './pages/SignupPage';
 
 // Security Route wrappers
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -49,6 +50,14 @@ const AppContent: React.FC = () => {
             <LoginPage />
           </PublicRoute>
         }
+      />
+      <Route 
+        path="/signup" 
+        element={
+          <PublicRoute>
+            <SignupPage />
+          </PublicRoute>
+        } 
       />
 
       {/* Protected Console Workspace (Wrapped in AppLayout) */}
