@@ -36,10 +36,10 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
 
   const menuItems = [
     { path: '/network', label: 'Network', icon: Network },
-    { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    // { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { path: '/community-map', label: 'Map View', icon: Map },
-    { path: '/explore-communities', label: 'Discover', icon: Compass },
-    { path: '/community', label: 'Community', icon: Users },
+    { path: '/explore-communities', label: 'Communities', icon: Compass },
+    { path: '/community', label: 'Users', icon: Users },
     { path: '/chat', label: 'Messages', icon: MessageSquare },
     { path: '/call', label: 'Voice & Video', icon: Phone },
   ];
@@ -85,7 +85,7 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
         </nav>
 
         {/* User Card at Sidebar Bottom */}
-        <div className="sidebar-footer">
+        {/* <div className="sidebar-footer">
           <Link to={`/profile/${user.id}`} className="sidebar-user-card">
             <img src={user.avatar} alt={user.name} className="sidebar-avatar" />
             <div className="sidebar-user-details">
@@ -96,7 +96,7 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
           <button className="logout-btn" onClick={handleLogout} title="Log Out">
             <LogOut size={18} />
           </button>
-        </div>
+        </div> */}
       </aside>
 
       {/* Main Workspace Frame */}
@@ -112,8 +112,8 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
             <h2>
               {location.pathname === '/dashboard' && 'Core Console'}
               {location.pathname === '/community-map' && 'Community Map'}
-              {location.pathname === '/explore-communities' && 'Discover Circles'}
-              {location.pathname === '/community' && 'Network Directory'}
+              {location.pathname === '/explore-communities' && ''}
+              {location.pathname === '/community' && ''}
               {location.pathname === '/chat' && 'Quantum Encrypted Chats'}
               {location.pathname === '/call' && 'Teleportation Node'}
               {location.pathname.startsWith('/profile') && 'Identity Matrix'}
@@ -160,6 +160,13 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
             >
               {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
             </button>
+            <div className="user-pill" onClick={() => navigate(`/profile/${user.id}`)}>
+              <img src={user.avatar} alt={user.name} className="header-avatar" />
+              <span className='desktop-controls'>{user.name}</span>
+            </div>
+            <button className="btn-icon btn-icon-rose" onClick={handleLogout} title="Log Out">
+              <LogOut size={16} />
+            </button>
           </div>
         </header>
 
@@ -191,7 +198,7 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
                   </button>
                 );
               })}
-              <button
+              {/* <button
                 className="mobile-nav-link"
                 onClick={() => {
                   toggleTheme();
@@ -210,7 +217,7 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
               >
                 <LogOut size={18} />
                 <span>Log Out</span>
-              </button>
+              </button> */}
             </motion.div>
           )}
         </AnimatePresence>

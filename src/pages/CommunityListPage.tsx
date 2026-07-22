@@ -2,13 +2,13 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCommunication } from '../context/CommunicationContext';
 import type { User } from '../types';
-import { 
-  Search, 
-  MapPin, 
-  MessageSquare, 
-  Phone, 
-  Video, 
-  UserCheck, 
+import {
+  Search,
+  MapPin,
+  MessageSquare,
+  Phone,
+  Video,
+  UserCheck,
   UserPlus
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -17,7 +17,7 @@ import './CommunityListPage.css';
 export const CommunityListPage: React.FC = () => {
   const { users, toggleFollow, startCall, setActiveChatUserId } = useCommunication();
   const navigate = useNavigate();
-  
+
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRole, setSelectedRole] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All');
@@ -28,17 +28,17 @@ export const CommunityListPage: React.FC = () => {
 
   // Handle filtering
   const filteredUsers = users.filter((u) => {
-    const matchesSearch = 
+    const matchesSearch =
       u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       u.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
       u.role.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesRole = 
-      selectedRole === 'All' || 
+
+    const matchesRole =
+      selectedRole === 'All' ||
       u.role.toLowerCase().includes(selectedRole.toLowerCase());
 
-    const matchesStatus = 
-      statusFilter === 'All' || 
+    const matchesStatus =
+      statusFilter === 'All' ||
       (statusFilter === 'Online' && u.status === 'online');
 
     return matchesSearch && matchesRole && matchesStatus;
@@ -65,6 +65,12 @@ export const CommunityListPage: React.FC = () => {
 
   return (
     <div className="community-list-page">
+      <div className="explore-title-block">
+        {/* <Compass className="explore-compass-icon" size={28} /> */}
+        <div>
+          <h1>Users</h1>
+        </div>
+      </div>
       {/* Filters Toolbar */}
       <section className="toolbar-panel glass-panel">
         <div className="search-box-wrapper">
@@ -82,13 +88,13 @@ export const CommunityListPage: React.FC = () => {
           {/* Status selector */}
           <div className="control-select">
             <span className="control-label">Status:</span>
-            <button 
+            <button
               className={`filter-tab ${statusFilter === 'All' ? 'active' : ''}`}
               onClick={() => setStatusFilter('All')}
             >
               All
             </button>
-            <button 
+            <button
               className={`filter-tab ${statusFilter === 'Online' ? 'active' : ''}`}
               onClick={() => setStatusFilter('Online')}
             >
@@ -101,7 +107,7 @@ export const CommunityListPage: React.FC = () => {
           {/* Sort selector */}
           <div className="control-select">
             <span className="control-label">Sort:</span>
-            <select 
+            <select
               className="styled-select"
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as 'name' | 'followers')}
@@ -127,7 +133,7 @@ export const CommunityListPage: React.FC = () => {
       </section>
 
       {/* Pioneer Cards Grid */}
-      <motion.section 
+      <motion.section
         className="pioneers-grid"
         layout
       >
@@ -143,8 +149,8 @@ export const CommunityListPage: React.FC = () => {
               transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
             >
               {/* Card Banner */}
-              <div 
-                className="card-banner" 
+              <div
+                className="card-banner"
                 style={{ backgroundImage: `url(${pioneer.coverImage})` }}
               >
                 <span className={`status-badge-absolute ${pioneer.status}`}>
@@ -195,7 +201,7 @@ export const CommunityListPage: React.FC = () => {
 
               {/* Card Actions Panel */}
               <div className="card-actions-panel">
-                <button 
+                <button
                   className={`follow-card-btn ${pioneer.isFollowing ? 'following' : ''}`}
                   onClick={() => toggleFollow(pioneer.id)}
                   title={pioneer.isFollowing ? 'Unfollow Pioneer' : 'Follow Pioneer'}
@@ -205,14 +211,14 @@ export const CommunityListPage: React.FC = () => {
                 </button>
 
                 <div className="comms-actions-group">
-                  <button 
+                  <button
                     className="btn-icon btn-icon-cyan"
                     onClick={() => handleOpenChat(pioneer.id)}
                     title="Quantum Message"
                   >
                     <MessageSquare size={16} />
                   </button>
-                  <button 
+                  <button
                     className="btn-icon btn-icon-violet"
                     onClick={() => handleLaunchCall(pioneer, 'audio')}
                     title="Voice Call"
@@ -220,7 +226,7 @@ export const CommunityListPage: React.FC = () => {
                   >
                     <Phone size={16} />
                   </button>
-                  <button 
+                  <button
                     className="btn-icon btn-icon-rose"
                     onClick={() => handleLaunchCall(pioneer, 'video')}
                     title="Video Stream Portal"

@@ -33,46 +33,54 @@ const AppContent: React.FC = () => {
   return (
     <Routes>
       {/* Public Pages */}
-      <Route path="/" element={<LandingPage />} />
-      <Route 
-        path="/login" 
+      {/*<Route path="/" element={<LandingPage />} />*/}
+      <Route
+        path="/"
         element={
           <PublicRoute>
             <LoginPage />
           </PublicRoute>
-        } 
+        }
+      />
+      <Route
+        path="/login"
+        element={
+          <PublicRoute>
+            <LoginPage />
+          </PublicRoute>
+        }
       />
 
       {/* Protected Console Workspace (Wrapped in AppLayout) */}
-      <Route 
-        path="/dashboard" 
+      <Route
+        path="/dashboard"
         element={
           <ProtectedRoute>
             <AppLayout>
               <DashboardPage />
             </AppLayout>
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route 
-        path="/community" 
+      <Route
+        path="/community"
         element={
           <ProtectedRoute>
             <AppLayout>
               <CommunityListPage />
             </AppLayout>
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route 
-        path="/explore-communities" 
+      <Route
+        path="/explore-communities"
         element={
           <ProtectedRoute>
             <AppLayout>
               <ExploreCommunitiesPage />
             </AppLayout>
           </ProtectedRoute>
-        } 
+        }
       />
       <Route
         path="/community-map"
@@ -84,53 +92,53 @@ const AppContent: React.FC = () => {
           </ProtectedRoute>
         }
       />
-      <Route 
-        path="/profile/:id" 
+      <Route
+        path="/profile/:id"
         element={
           <ProtectedRoute>
             <AppLayout>
               <UserProfilePage />
             </AppLayout>
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route 
-        path="/chat" 
+      <Route
+        path="/chat"
         element={
           <ProtectedRoute>
             <AppLayout>
               <ChatPage />
             </AppLayout>
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route 
-        path="/call" 
+      <Route
+        path="/call"
         element={
           <ProtectedRoute>
             <AppLayout>
               <CallPage />
             </AppLayout>
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route 
-        path="/network" 
+      <Route
+        path="/network"
         element={
           <ProtectedRoute>
             <NetworkConstellationPage />
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route 
-        path="/community-details/:id" 
+      <Route
+        path="/community-details/:id"
         element={
           <ProtectedRoute>
             <AppLayout>
               <CommunityDetailsPage />
             </AppLayout>
           </ProtectedRoute>
-        } 
+        }
       />
 
       {/* Redirect wildcards */}
