@@ -1,15 +1,23 @@
 import React, { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Compass,
   Search,
   ChevronLeft,
-  SlidersHorizontal
+  SlidersHorizontal,
+  Plus,
+  X,
+  Sparkles,
+  Calendar,
+  Clock,
+  MapPin,
+  Image as ImageIcon
 } from 'lucide-react';
 import '../assets/css/ExploreCommunitiesPage.css';
 import type { CommunityItem } from '../types';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
+import { useAuth } from '../context/AuthContext';
 
 
 // SVG Illustration Component themed dynamically
@@ -172,51 +180,168 @@ export const ThematicIllustration: React.FC<{ theme: CommunityItem['theme'] }> =
   }
 };
 
+const PRESET_IMAGES: Record<CommunityItem['theme'], string[]> = {
+  football: [
+    'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=800&auto=format&fit=crop&q=60',
+    'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=800&auto=format&fit=crop&q=60'
+  ],
+  cricket: [
+    'https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?w=800&auto=format&fit=crop&q=60',
+    'https://images.unsplash.com/photo-1531415074968-036ba1b575da?w=800&auto=format&fit=crop&q=60'
+  ],
+  music: [
+    'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&auto=format&fit=crop&q=60',
+    'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=800&auto=format&fit=crop&q=60'
+  ],
+  party: [
+    'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=800&auto=format&fit=crop&q=60',
+    'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&auto=format&fit=crop&q=60'
+  ],
+  travel: [
+    'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800&auto=format&fit=crop&q=60',
+    'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=800&auto=format&fit=crop&q=60'
+  ],
+  drinks: [
+    'https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=800&auto=format&fit=crop&q=60',
+    'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=800&auto=format&fit=crop&q=60'
+  ]
+};
+
 export const ExploreCommunitiesPage: React.FC = () => {
+  const { user } = useAuth();
   const [activeFilter, setActiveFilter] = useState<'All' | 'Today' | 'This week' | 'Past'>('All');
   const [layoutMode] = useState<'web' | 'mobile'>('web');
   const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
 
-  const [communities, setCommunities] = useState<CommunityItem[]>([])
+  const [communities, setCommunities] = useState<CommunityItem[]>([]);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [formData, setFormData] = useState({
+    name: '',
+    theme: 'music' as CommunityItem['theme'],
+    image: '',
+    dateStr: 'Saturday',
+    timeStr: '6:00 PM',
+    distance: '1.5 km away'
+  });
 
   useEffect(() => {
-    console.log("communities: ", communities)
-    fetchCommunities()
-  }, [])
+    fetchCommunities();
+  }, []);
 
   // GET - fetch all
   const fetchCommunities = async () => {
-    console.log("fetched communities...")
     const { data, error } = await supabase
       .from('community_list')
-      .select('*')
-    console.log("data success ==", data);
-    console.log("error ==", error);
+      .select('*');
     if (error) {
-      console.error(error)
+      console.error(error);
     } else if (data) {
       const mapped = data.map((c) => ({
         id: c.id,
         name: c.name,
         theme: c.theme,
-        image: c.image || c.image_url,
+        image: c.image || c.image,
         status: c.status,
         dateStr: c.date_str || c.dateStr || '',
         timeStr: c.time_str || c.timeStr || '',
         distance: c.distance,
         host: typeof c.host === 'string' ? JSON.parse(c.host) : c.host,
         attendees: typeof c.attendees === 'string' ? JSON.parse(c.attendees) : (c.attendees || []),
-      }))
-      setCommunities(mapped)
+      }));
+      setCommunities(mapped);
     }
-  }
+  };
+
+  const handleCreateCommunity = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.name.trim()) return;
+
+    setIsSubmitting(true);
+
+    const hostObj = {
+      name: user?.name || 'Community Leader',
+      avatar: user?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'
+    };
+
+    const selectedImage = formData.image || PRESET_IMAGES[formData.theme][0];
+
+    // Calculate auto-incremented ID in comm_X format (e.g. comm_13, comm_14)
+    let maxIdNum = 0;
+    communities.forEach((c) => {
+      if (c.id) {
+        const match = String(c.id).match(/^comm_(\d+)$/i);
+        if (match) {
+          const num = parseInt(match[1], 10);
+          if (!isNaN(num) && num > maxIdNum) {
+            maxIdNum = num;
+          }
+        }
+      }
+    });
+    const generatedId = `comm_${maxIdNum + 1}`;
+
+    const newRecordPayload = {
+      id: generatedId,
+      name: formData.name.trim(),
+      theme: formData.theme,
+      image: selectedImage,
+      status: 'Upcoming',
+      date_str: formData.dateStr || 'Saturday',
+      time_str: formData.timeStr || '6:00 PM',
+      distance: formData.distance || '1.5 km away',
+      host: JSON.stringify(hostObj),
+      attendees: JSON.stringify([hostObj])
+    };
+
+    console.log("newRecordPayload ===", newRecordPayload);
+
+    try {
+      const { error } = await supabase
+        .from('community_list')
+        .insert(newRecordPayload);
+
+      // if (error) {
+      //   console.error('Error inserting into Supabase:', error);
+      // }
+
+      // const newItem: CommunityItem = {
+      //   id: generatedId,
+      //   name: formData.name.trim(),
+      //   theme: formData.theme,
+      //   image: selectedImage,
+      //   status: 'Saturday',
+      //   dateStr: formData.dateStr || 'Saturday',
+      //   timeStr: formData.timeStr || '6:00 PM',
+      //   distance: formData.distance || '1.5 km away',
+      //   host: hostObj,
+      //   attendees: [hostObj]
+      // };
+      // setCommunities((prev) => [newItem, ...prev]);
+      fetchCommunities();
+      setIsCreateModalOpen(false);
+      setFormData({
+        name: '',
+        theme: 'music',
+        image: '',
+        dateStr: 'Saturday',
+        timeStr: '6:00 PM',
+        distance: '1.5 km away'
+      });
+    } catch (err) {
+      console.error('Failed to create community:', err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   // Handle Filtering Logic
   const filteredCommunities = communities.filter((item) => {
     // 1. Text Search matching
     const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.host.name.toLowerCase().includes(searchQuery.toLowerCase());
+      (item.host?.name && item.host.name.toLowerCase().includes(searchQuery.toLowerCase()));
     if (!matchesSearch) return false;
 
     // 2. Tab Category matching
@@ -225,7 +350,6 @@ export const ExploreCommunitiesPage: React.FC = () => {
       return item.status === 'Today';
     }
     if (activeFilter === 'This week') {
-      // This week covers active future events and today, but excludes "Ended"
       return item.status !== 'Ended';
     }
     if (activeFilter === 'Past') {
@@ -241,29 +365,15 @@ export const ExploreCommunitiesPage: React.FC = () => {
         {/* Cover Image Container */}
         <div className="card-cover-container">
           <img src={item.image} alt={item.name} className="card-cover-image" />
-
-          {/* Status Badge - Top Left */}
-          {/* <div className={`card-status-badge ${badgeClass}`}>
-            <span className="badge-pulse-dot" />
-            {item.status}
-          </div> */}
-
-          {/* Hosted By Overlay - Top Right */}
-          <div className="card-host-overlay">
-            <img src={item.host.avatar} alt={item.host.name} className="host-avatar" />
-            <span className="host-name">by {item.host.name.split(' ')[0]}</span>
-          </div>
         </div>
 
-        {/* Card Body */}
+        {/* Card Body Details */}
         <div className="card-details">
           <h3 className="community-title">{item.name}</h3>
 
           <div className="community-meta">
-            {/* <Calendar size={13} className="meta-icon" /> */}
             <span>{item.dateStr} at {item.timeStr}</span>
             <span className="meta-dot">•</span>
-            {/* <MapPin size={13} className="meta-icon" /> */}
             <span>{item.distance}</span>
           </div>
         </div>
@@ -271,7 +381,7 @@ export const ExploreCommunitiesPage: React.FC = () => {
         {/* Card Footer Row */}
         <div className="card-footer">
           <div className="attendee-stack">
-            {item.attendees.slice(0, 3).map((attendee, idx) => (
+            {item.attendees && item.attendees.slice(0, 3).map((attendee, idx) => (
               <img
                 key={idx}
                 src={attendee.avatar}
@@ -280,15 +390,12 @@ export const ExploreCommunitiesPage: React.FC = () => {
                 style={{ zIndex: 3 - idx }}
               />
             ))}
-            {item.attendees.length > 3 && (
+            {item.attendees && item.attendees.length > 3 && (
               <div className="attendee-excess" style={{ zIndex: 0 }}>
                 +{item.attendees.length - 3}
               </div>
             )}
           </div>
-          {/* <span className="going-count-label">
-            {item.attendees.length + 1} going
-          </span> */}
         </div>
       </div>
     );
@@ -299,40 +406,25 @@ export const ExploreCommunitiesPage: React.FC = () => {
       {/* Header Controls */}
       <div className="explore-header-row">
         <div className="explore-title-block">
-          {/* <Compass className="explore-compass-icon" size={28} /> */}
           <div>
             <h1>Communities</h1>
             <p className="explore-subtitle">Discover people and plans near you</p>
           </div>
         </div>
 
-        {/* Layout Switch Toggle */}
-        {/* <div className="layout-toggle-container">
-          <button 
-            className={`toggle-mode-btn ${layoutMode === 'web' ? 'active' : ''}`}
-            onClick={() => setLayoutMode('web')}
-            title="Desktop Grid Layout"
-          >
-            <Grid size={16} />
-            <span>Web Grid</span>
-          </button>
-          <button 
-            className={`toggle-mode-btn ${layoutMode === 'mobile' ? 'active' : ''}`}
-            onClick={() => setLayoutMode('mobile')}
-            title="Mobile Phone Simulator Layout"
-          >
-            <Smartphone size={16} />
-            <span>Mobile Device</span>
-          </button>
-        </div> */}
+        {/* Action Button: Create Community */}
+        <button
+          className="create-community-btn"
+          onClick={() => setIsCreateModalOpen(true)}
+        >
+          <Plus size={18} />
+          <span>Create Community</span>
+        </button>
       </div>
 
       {/* Main Content Area */}
       <div className="explore-main-workspace">
         {layoutMode === 'web' ? (
-          /* ======================================================== */
-          /* WEB GRID VIEW                                            */
-          /* ======================================================== */
           <div className="web-layout-container">
             {/* Search and Filters Strip */}
             <div className="filter-controls-strip">
@@ -376,37 +468,28 @@ export const ExploreCommunitiesPage: React.FC = () => {
               <div className="empty-search-state">
                 <Compass size={48} className="empty-state-icon" />
                 <h3>No communities match your criteria</h3>
-                <p>Try searching for a different keyword or resetting your filter tabs.</p>
+                <p>Try searching for a different keyword or create your own community!</p>
                 <button
                   className="clear-search-btn"
-                  onClick={() => { setSearchQuery(''); setActiveFilter('All'); }}
+                  onClick={() => setIsCreateModalOpen(true)}
                 >
-                  Clear Filters
+                  <Plus size={16} style={{ marginRight: 6 }} />
+                  Create First Community
                 </button>
               </div>
             )}
           </div>
         ) : (
-          /* ======================================================== */
-          /* MOBILE PHONE SIMULATOR FRAME VIEW                        */
-          /* ======================================================== */
           <div className="mobile-simulator-wrapper">
             <div className="simulator-instructions">
               <h4>Mobile Device Emulator</h4>
-              <p>Experience the exact mobile rendering flow of the page, configured inside a pixel-perfect viewport frame simulating an iPhone / Android layout.</p>
-              <div className="instructions-legend">
-                <div className="legend-item"><span className="legend-dot status-today" /> Today Events</div>
-                <div className="legend-item"><span className="legend-dot status-upcoming" /> Weekday Schedules</div>
-                <div className="legend-item"><span className="legend-dot status-ended" /> Completed Meetups</div>
-              </div>
+              <p>Experience the exact mobile rendering flow of the page, configured inside a pixel-perfect viewport frame.</p>
             </div>
 
-            {/* Mobile Bezels */}
             <div className="smartphone-device">
               <div className="smartphone-speaker" />
               <div className="smartphone-notch" />
               <div className="smartphone-screen-content">
-                {/* Simulated Phone Status Bar */}
                 <div className="mobile-status-bar">
                   <span className="status-bar-time">9:41</span>
                   <div className="status-bar-symbols">
@@ -415,25 +498,22 @@ export const ExploreCommunitiesPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Simulated Phone App Header */}
                 <div className="mobile-app-header">
                   <button className="mobile-header-back-btn">
                     <ChevronLeft size={20} />
                   </button>
                   <span className="mobile-header-title">Discover</span>
-                  <button className="mobile-header-action-btn">
-                    <SlidersHorizontal size={18} />
+                  <button className="mobile-header-action-btn" onClick={() => setIsCreateModalOpen(true)}>
+                    <Plus size={18} />
                   </button>
                 </div>
 
-                {/* Scrollable Mobile Viewport */}
                 <div className="mobile-scrollable-area">
                   <div className="mobile-intro-section">
                     <h2>Explore Communities</h2>
                     <p>Find local meetups happening around you</p>
                   </div>
 
-                  {/* Mobile Search Input */}
                   <div className="mobile-search-wrapper">
                     <Search size={16} className="mobile-search-icon" />
                     <input
@@ -445,7 +525,6 @@ export const ExploreCommunitiesPage: React.FC = () => {
                     />
                   </div>
 
-                  {/* Mobile Horizontal Filter List */}
                   <div className="mobile-filters-scroller">
                     {(['All', 'Today', 'This week', 'Past'] as const).map((filter) => (
                       <button
@@ -458,7 +537,6 @@ export const ExploreCommunitiesPage: React.FC = () => {
                     ))}
                   </div>
 
-                  {/* Cards List */}
                   {filteredCommunities.length > 0 ? (
                     <div className="communities-mobile-list">
                       {filteredCommunities.map(renderCard)}
@@ -472,13 +550,163 @@ export const ExploreCommunitiesPage: React.FC = () => {
                   )}
                 </div>
 
-                {/* Simulated Home Indicator Bar */}
                 <div className="mobile-home-indicator" />
               </div>
             </div>
           </div>
         )}
       </div>
+
+      {/* CREATE COMMUNITY MODAL */}
+      <AnimatePresence>
+        {isCreateModalOpen && (
+          <div className="modal-backdrop-overlay" onClick={() => setIsCreateModalOpen(false)}>
+            <motion.div
+              className="create-community-modal glass-panel"
+              initial={{ opacity: 0, scale: 0.92, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.92, y: 20 }}
+              transition={{ duration: 0.25, ease: 'easeOut' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Modal Header */}
+              <div className="modal-header-bar">
+                <div className="modal-header-title">
+                  <Sparkles size={20} className="modal-header-icon" />
+                  <div>
+                    <h3>Create New Community</h3>
+                    <p>Enter details to start a local meetup or interest group</p>
+                  </div>
+                </div>
+                <button
+                  className="modal-close-btn"
+                  onClick={() => setIsCreateModalOpen(false)}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Modal Form */}
+              <form onSubmit={handleCreateCommunity} className="modal-form-body">
+                <div className="form-group">
+                  <label className="form-label">Community Name *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Bangalore Indie Acoustic Club"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className="form-input"
+                  />
+                </div>
+
+                <div className="form-group-row">
+                  <div className="form-group">
+                    <label className="form-label">Category / Theme</label>
+                    <select
+                      value={formData.theme}
+                      onChange={(e) => {
+                        const newTheme = e.target.value as CommunityItem['theme'];
+                        setFormData({
+                          ...formData,
+                          theme: newTheme,
+                          image: PRESET_IMAGES[newTheme][0]
+                        });
+                      }}
+                      className="form-select"
+                    >
+                      <option value="music">🎵 Music & Jam</option>
+                      <option value="football">⚽ Football & Sports</option>
+                      <option value="cricket">🏏 Cricket & Games</option>
+                      <option value="party">🎉 Party & Social</option>
+                      <option value="travel">🏔️ Travel & Adventure</option>
+                      <option value="drinks">🍸 Drinks & Nightlife</option>
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Location / Distance</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Koramangala • 1.5 km away"
+                      value={formData.distance}
+                      onChange={(e) => setFormData({ ...formData, distance: e.target.value })}
+                      className="form-input"
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group-row">
+                  <div className="form-group">
+                    <label className="form-label">Date</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Saturday or July 26"
+                      value={formData.dateStr}
+                      onChange={(e) => setFormData({ ...formData, dateStr: e.target.value })}
+                      className="form-input"
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Time</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 6:00 PM"
+                      value={formData.timeStr}
+                      onChange={(e) => setFormData({ ...formData, timeStr: e.target.value })}
+                      className="form-input"
+                    />
+                  </div>
+                </div>
+
+                {/* Preset Image Selector */}
+                <div className="form-group">
+                  <label className="form-label">Cover Image</label>
+                  <div className="preset-images-wrapper">
+                    <div className="preset-images-grid">
+                      {PRESET_IMAGES[formData.theme].map((imgUrl, idx) => (
+                        <div
+                          key={idx}
+                          className={`preset-img-thumb ${formData.image === imgUrl || (!formData.image && idx === 0) ? 'selected' : ''}`}
+                          onClick={() => setFormData({ ...formData, image: imgUrl })}
+                        >
+                          <img src={imgUrl} alt={`Preset ${idx}`} />
+                        </div>
+                      ))}
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="Or paste custom image URL..."
+                      value={formData.image}
+                      onChange={(e) => setFormData({ ...formData, image: e.target.value })}
+                      className="form-input custom-url-input"
+                    />
+                  </div>
+                </div>
+
+                {/* Modal Action Buttons */}
+                <div className="modal-footer-actions">
+                  <button
+                    type="button"
+                    className="btn-create-cancel"
+                    onClick={() => setIsCreateModalOpen(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting || !formData.name.trim()}
+                    className="btn-create-submit"
+                  >
+                    {isSubmitting ? 'Creating...' : 'Create Community'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
