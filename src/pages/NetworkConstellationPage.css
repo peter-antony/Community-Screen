@@ -158,6 +158,34 @@
   border-color: rgba(6, 182, 212, 0.15);
 }
 
+@media (max-width: 768px) {
+  .constellation-header {
+    height: 56px;
+    margin: 8px 8px 0 8px;
+    padding: 0 12px;
+    border-radius: 14px;
+  }
+
+  .mobile-menu-toggle {
+    display: flex !important;
+  }
+
+  .mobile-dropdown {
+    display: flex !important;
+    top: 72px;
+    left: 8px;
+    right: 8px;
+  }
+
+  .constellation-user-control .desktop-controls {
+    display: none;
+  }
+
+  .constellation-user-control {
+    gap: 8px;
+  }
+}
+
 .mobile-nav-link {
   display: flex;
   align-items: center;

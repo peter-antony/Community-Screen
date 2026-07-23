@@ -10,7 +10,8 @@ import {
   Users,
   Compass,
   MessageSquare,
-  MessageCircleMore
+  MessageCircleMore,
+  ArrowLeft
 } from 'lucide-react';
 import type { CommunityItem } from '../types';
 import './CommunityDetailsPage.css';
@@ -184,6 +185,24 @@ export const CommunityDetailsPage: React.FC = () => {
 
   return (
     <div className="user-profile-page community-profile-page">
+      <div className="explore-header-row">
+        <div className="explore-title-block">
+          <div>
+            <h1>Community Details</h1>
+            {/* <p className="explore-subtitle">Discover people and plans near you</p> */}
+          </div>
+        </div>
+
+        {/* Action Button: Create Community */}
+        <button
+          className="btn-back-arrow"
+          onClick={() => navigate(-1)}
+          title="Go Back"
+        >
+          <ArrowLeft size={18} />
+          {/* <span>Back</span> */}
+        </button>
+      </div>
 
       {/* Cover Banner */}
       <div
@@ -191,14 +210,7 @@ export const CommunityDetailsPage: React.FC = () => {
         style={{ backgroundImage: `url(${community.image})` }}
       >
         <div className="cover-overlay" />
-        {/* <button 
-          className="circular-action-btn close-btn" 
-          onClick={() => navigate('/network')} 
-          title="Go Back" 
-          style={{ position: 'absolute', top: '20px', left: '20px', zIndex: 10 }}
-        >
-          <X size={20} />
-        </button> */}
+
       </div>
 
       {/* Profile Header Details */}

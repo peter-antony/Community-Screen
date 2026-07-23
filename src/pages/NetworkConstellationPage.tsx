@@ -17,7 +17,12 @@ import {
   UserPlus,
   X,
   Sun,
-  Moon
+  Moon,
+  Compass,
+  Map,
+  MessageCircleMore,
+  Menu,
+  Users
 } from 'lucide-react';
 import type { User, CommunityItem } from '../types';
 import './NetworkConstellationPage.css';
@@ -39,9 +44,9 @@ const useStageSize = () => {
     const size = Math.max(Math.min(horizontalMax, availableH), isMobile ? 260 : 320);
 
     const ratios = isMobile
-      ? { inner: 0.29, outer: 0.47, center: 0.18, innerSat: 0.18, outerSat: 0.1 }
+      ? { inner: 0.24, outer: 0.38, center: 0.16, innerSat: 0.14, outerSat: 0.08 }
       : isTablet
-        ? { inner: 0.28, outer: 0.47, center: 0.17, innerSat: 0.17, outerSat: 0.09 }
+        ? { inner: 0.26, outer: 0.42, center: 0.16, innerSat: 0.16, outerSat: 0.085 }
         : w <= 1024
           ? { inner: 0.28, outer: 0.46, center: 0.16, innerSat: 0.16, outerSat: 0.085 }
           : { inner: 0.28, outer: 0.46, center: 0.16, innerSat: 0.16, outerSat: 0.08 };
@@ -365,12 +370,13 @@ export const NetworkConstellationPage: React.FC = () => {
           </button>
         </div>
 
-        {/* Mobile Hamburger Menu */}
+        {/* Mobile Hamburger Menu Toggle */}
         {/* <button
           className="mobile-menu-toggle"
           onClick={(e) => { e.stopPropagation(); setMobileMenuOpen(!mobileMenuOpen); }}
+          title="Toggle Navigation Menu"
         >
-          {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
+          {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
         </button> */}
       </header>
 
@@ -385,13 +391,25 @@ export const NetworkConstellationPage: React.FC = () => {
             transition={{ duration: 0.2 }}
             onClick={(e) => e.stopPropagation()}
           >
-            <button className="mobile-nav-link" onClick={() => { navigate('/dashboard'); setMobileMenuOpen(false); }}>
-              <LayoutDashboard size={18} />
-              <span>Console</span>
+            <button className="mobile-nav-link" onClick={() => { navigate('/network'); setMobileMenuOpen(false); }}>
+              <Network size={18} />
+              <span>Network</span>
+            </button>
+            <button className="mobile-nav-link" onClick={() => { navigate('/community-map'); setMobileMenuOpen(false); }}>
+              <Map size={18} />
+              <span>Map View</span>
+            </button>
+            <button className="mobile-nav-link" onClick={() => { navigate('/explore-communities'); setMobileMenuOpen(false); }}>
+              <Compass size={18} />
+              <span>Communities</span>
+            </button>
+            <button className="mobile-nav-link" onClick={() => { navigate('/community-chat'); setMobileMenuOpen(false); }}>
+              <MessageCircleMore size={18} />
+              <span>Messages</span>
             </button>
             <button className="mobile-nav-link" onClick={() => { navigate('/community'); setMobileMenuOpen(false); }}>
-              <UserIcon size={18} />
-              <span>Directory</span>
+              <Users size={18} />
+              <span>Users</span>
             </button>
             <button className="mobile-nav-link" onClick={() => { navigate(`/profile/${authUser.id}`); setMobileMenuOpen(false); }}>
               <img src={authUser.avatar} alt={authUser.name} className="header-avatar" />
