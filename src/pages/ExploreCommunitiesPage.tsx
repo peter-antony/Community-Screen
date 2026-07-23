@@ -431,7 +431,7 @@ export const ExploreCommunitiesPage: React.FC = () => {
           onClick={() => setIsCreateModalOpen(true)}
         >
           <Plus size={18} />
-          <span>Create Community</span>
+          <span>Community</span>
         </button>
       </div>
 
