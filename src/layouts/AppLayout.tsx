@@ -112,13 +112,13 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
             </button>
             <h2>
               {location.pathname === '/dashboard' && 'Core Console'}
-              {location.pathname === '/community-map' && 'Community Map'}
+              {location.pathname === '/community-map' && ''}
               {location.pathname === '/explore-communities' && ''}
               {location.pathname === '/community-chat' && ''}
               {location.pathname === '/community' && ''}
               {location.pathname === '/chat' && 'Quantum Encrypted Chats'}
-              {location.pathname === '/call' && 'Teleportation Node'}
-              {location.pathname.startsWith('/profile') && 'Identity Matrix'}
+              {location.pathname === '/call' && ''}
+              {location.pathname.startsWith('/profile') && ''}
             </h2>
           </div>
 

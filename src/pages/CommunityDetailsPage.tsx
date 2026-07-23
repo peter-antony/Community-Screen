@@ -228,7 +228,7 @@ export const CommunityDetailsPage: React.FC = () => {
             </div>
             <span className="profile-role-title">{config.type} Activity</span>
 
-            <div className="profile-meta-row">
+            {/* <div className="profile-meta-row">
               <div className="meta-item">
                 <MapPin size={14} />
                 <span>{community.distance}</span>
@@ -237,7 +237,7 @@ export const CommunityDetailsPage: React.FC = () => {
                 <Users size={14} />
                 <span>Hosted by {community.host.name}</span>
               </div>
-            </div>
+            </div> */}
           </div>
 
           {/* Action Row */}
@@ -340,7 +340,7 @@ export const CommunityDetailsPage: React.FC = () => {
                 </div>
 
                 {/* Present / Participants */}
-                <div className="about-item-row" onClick={() => setActiveTab('present')}>
+                {/* <div className="about-item-row" onClick={() => setActiveTab('present')}>
                   <div className="about-item-icon-wrapper stack-wrapper">
                     <div className="avatar-overlap-circle">
                       {community.attendees.slice(0, 2).map((a, i) => (
@@ -353,10 +353,10 @@ export const CommunityDetailsPage: React.FC = () => {
                     <span className="item-value">View participants</span>
                   </div>
                   <ChevronRight size={16} className="item-arrow-right" />
-                </div>
+                </div> */}
 
                 {/* Community Group */}
-                <div className="about-item-row" onClick={() => navigate('/explore-communities')}>
+                {/* <div className="about-item-row" onClick={() => navigate('/explore-communities')}>
                   <div className="about-item-icon-wrapper standard-icon-bg">
                     <Users size={18} className="item-svg-icon" />
                   </div>
@@ -365,7 +365,7 @@ export const CommunityDetailsPage: React.FC = () => {
                     <span className="item-label-sub">Part of a community</span>
                   </div>
                   <ChevronRight size={16} className="item-arrow-right" />
-                </div>
+                </div> */}
 
                 {/* Time details */}
                 <div className="about-item-row">
