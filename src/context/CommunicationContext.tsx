@@ -47,23 +47,25 @@ export const CommunicationProvider: React.FC<{ children: React.ReactNode }> = ({
   const botTypingTimerRef = useRef<any>(null);
 
   const fetchUsers = async () => {
-    const { data, error } = await supabase.from('posts').select('*');
-    if (error) return console.error(error);
+    const { data: posts, error } = await supabase
+        .from('users')
+        .select('*')
+    if (error || !posts) return console.error(error || "No user data returned from database");
 
-    const mapped = data.map((u) => ({
+    const mapped = posts.map((u) => ({
       id: u.id,
-      name: u.name,
-      username: u.username,
-      role: u.role,
-      location: u.location,
-      bio: u.bio,
-      avatar: u.avatar,
-      coverImage: u.cover_image,
-      status: u.status,
-      followersCount: u.followers_count,
-      followingCount: u.following_count,
-      skills: u.skills,
-      isFollowing: u.is_following,
+      name: u.name || 'User',
+      username: u.username || 'user',
+      role: u.role || 'Member',
+      location: u.location || '',
+      bio: u.bio || '',
+      avatar: u.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
+      coverImage: u.cover_image || '',
+      status: u.status || 'offline',
+      followersCount: u.followers_count || 0,
+      followingCount: u.following_count || 0,
+      skills: u.skills || [],
+      isFollowing: u.is_following || false,
     }));
 
     setUsers(mapped);

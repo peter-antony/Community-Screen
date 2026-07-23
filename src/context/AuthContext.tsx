@@ -29,11 +29,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (session?.user) {
         console.log("select users")
         // Fetch custom profile data from public.users table (synced by database trigger)
-        const { data: profile, error } = await supabase
-          .from('posts')
-          .select('*').single();
+        const { data: profiles, error } = await supabase
+          .from('users')
+          .select('*')
+          // .eq('id', session.user.id);
 
-        if (profile && !error) {
+        if (profiles && profiles.length > 0 && !error) {
+          const profile = profiles[0];
           const mappedUser: User = {
             id: profile.id,
             name: profile.name,
@@ -52,7 +54,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(mappedUser);
           localStorage.setItem('community_auth_user', JSON.stringify(mappedUser));
         } else {
-          console.warn("Could not retrieve custom user profile from public.users:", error?.message);
+          console.warn("Could not retrieve custom user profile from public.users, using metadata fallback:", error?.message);
           // Fallback: construct profile from session metadata
           const metadata = session.user.user_metadata || {};
           const fallbackUser: User = {
