@@ -57,26 +57,26 @@
   max-height: 840px;
   overflow: hidden;
   border-radius: 20px;
-  border: 1px solid var(--border-glass, rgba(0, 0, 0, 0.08));
-  background: var(--bg-card, #ffffff);
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.08);
+  border: 1px solid var(--border-glass);
+  background: var(--bg-card);
+  box-shadow: var(--shadow-glass);
   margin-bottom: 16px;
 }
 
 /* ══════════════ STEP 1: SIDEBAR (Communities List) ══════════════ */
 .community-chat-sidebar {
   width: 360px;
-  border-right: 1px solid var(--border-glass, rgba(0, 0, 0, 0.08));
+  border-right: 1px solid var(--border-glass);
   display: flex;
   flex-direction: column;
-  background: var(--bg-secondary, #f8fafc);
+  background: var(--bg-secondary);
   flex-shrink: 0;
   transition: all 0.3s ease;
 }
 
 .community-sidebar-top {
   padding: 16px;
-  border-bottom: 1px solid var(--border-glass, rgba(0, 0, 0, 0.06));
+  border-bottom: 1px solid var(--border-glass);
 }
 
 .community-search-box {
@@ -91,8 +91,8 @@
   height: 42px;
   padding: 0 32px 0 40px;
   border-radius: 12px;
-  border: 1px solid var(--border-glass, rgba(0, 0, 0, 0.12));
-  background: var(--bg-primary, #ffffff);
+  border: 1px solid var(--border-glass);
+  background: var(--bg-tertiary);
   color: var(--text-primary);
   font-size: 0.88rem;
   outline: none;
@@ -136,7 +136,7 @@
 }
 
 .community-channels-list::-webkit-scrollbar-thumb {
-  background: var(--border-glass, rgba(150, 150, 150, 0.2));
+  background: var(--border-glass);
   border-radius: 5px;
 }
 
@@ -146,17 +146,17 @@
   gap: 14px;
   padding: 14px 18px;
   cursor: pointer;
-  border-bottom: 1px solid var(--border-glass, rgba(0, 0, 0, 0.04));
+  border-bottom: 1px solid var(--border-glass);
   transition: background-color 0.2s ease;
   position: relative;
 }
 
 .community-channel-item:hover {
-  background: rgba(6, 182, 212, 0.05);
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .community-channel-item.active {
-  background: rgba(6, 182, 212, 0.1);
+  background: rgba(6, 182, 212, 0.12);
   border-left: 3.5px solid var(--accent-cyan, #06b6d4);
 }
 
@@ -172,7 +172,7 @@
   height: 48px;
   border-radius: 14px;
   object-fit: cover;
-  border: 1px solid var(--border-glass, rgba(0, 0, 0, 0.08));
+  border: 1px solid var(--border-glass);
 }
 
 .community-badge-tag {
@@ -180,8 +180,8 @@
   bottom: -3px;
   right: -3px;
   font-size: 10px;
-  background: var(--bg-card, #ffffff);
-  border: 1px solid var(--border-glass, rgba(0, 0, 0, 0.08));
+  background: var(--bg-card);
+  border: 1px solid var(--border-glass);
   border-radius: 50%;
   width: 18px;
   height: 18px;
@@ -239,7 +239,7 @@
   font-size: 0.68rem;
   padding: 2px 7px;
   border-radius: 6px;
-  background: rgba(6, 182, 212, 0.1);
+  background: rgba(6, 182, 212, 0.12);
   color: var(--accent-cyan, #06b6d4);
   font-weight: 700;
   text-transform: capitalize;
@@ -270,18 +270,18 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  background: var(--bg-card, #ffffff);
+  background: var(--bg-card);
   min-width: 0;
 }
 
 /* Chat Header Bar */
 .community-chat-header-bar {
   padding: 12px 18px;
-  border-bottom: 1px solid var(--border-glass, rgba(0, 0, 0, 0.08));
+  border-bottom: 1px solid var(--border-glass);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: var(--bg-secondary, #ffffff);
+  background: var(--bg-secondary);
   gap: 8px;
 }
 
@@ -301,8 +301,8 @@
   gap: 5px;
   padding: 6px 10px;
   border-radius: 10px;
-  background: rgba(6, 182, 212, 0.08);
-  border: 1px solid rgba(6, 182, 212, 0.2);
+  background: rgba(6, 182, 212, 0.1);
+  border: 1px solid rgba(6, 182, 212, 0.25);
   color: var(--accent-cyan, #06b6d4);
   font-size: 0.82rem;
   font-weight: 700;
@@ -312,7 +312,7 @@
 }
 
 .community-back-btn:hover {
-  background: rgba(6, 182, 212, 0.18);
+  background: rgba(6, 182, 212, 0.2);
   transform: translateX(-2px);
 }
 
@@ -404,7 +404,7 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
-  background: var(--bg-primary, #f1f5f9);
+  background: var(--bg-tertiary);
 }
 
 .community-security-notice {
@@ -414,9 +414,9 @@
   gap: 8px;
   padding: 6px 16px;
   border-radius: 20px;
-  background: var(--bg-secondary, #ffffff);
-  border: 1px solid var(--border-glass, rgba(0, 0, 0, 0.08));
-  color: var(--text-secondary, #475569);
+  background: var(--bg-card);
+  border: 1px solid var(--border-glass);
+  color: var(--text-secondary);
   font-size: 0.72rem;
   font-weight: 600;
   letter-spacing: 0.03em;
@@ -476,15 +476,15 @@
 }
 
 .group-message-wrapper.incoming .group-message-content {
-  background: var(--bg-secondary, #ffffff);
-  border: 1px solid var(--border-glass, rgba(0, 0, 0, 0.08));
+  background: var(--bg-card);
+  border: 1px solid var(--border-glass);
   color: var(--text-primary);
   border-bottom-left-radius: 4px;
 }
 
 .group-message-time {
   font-size: 0.72rem;
-  color: var(--text-muted, #64748b);
+  color: var(--text-muted);
   align-self: flex-end;
   margin-top: 3px;
 }
@@ -496,11 +496,11 @@
 /* ══════════════ INPUT BAR ══════════════ */
 .community-chat-input-bar {
   padding: 14px 20px;
-  border-top: 1px solid var(--border-glass, rgba(0, 0, 0, 0.08));
+  border-top: 1px solid var(--border-glass);
   display: flex;
   align-items: center;
   gap: 12px;
-  background: var(--bg-secondary, #ffffff);
+  background: var(--bg-secondary);
 }
 
 .community-chat-input {
@@ -508,8 +508,8 @@
   height: 44px;
   padding: 0 16px;
   border-radius: 14px;
-  border: 1px solid var(--border-glass, rgba(0, 0, 0, 0.12));
-  background: var(--bg-primary, #f8fafc);
+  border: 1px solid var(--border-glass);
+  background: var(--bg-tertiary);
   color: var(--text-primary);
   font-size: 0.92rem;
   outline: none;
@@ -556,7 +556,7 @@
   align-items: center;
   justify-content: center;
   padding: 32px;
-  background: var(--bg-card, #ffffff);
+  background: var(--bg-card);
 }
 
 .welcome-content-card {
@@ -606,8 +606,8 @@
   gap: 8px;
   padding: 8px 12px;
   border-radius: 12px;
-  background: var(--bg-secondary, #f8fafc);
-  border: 1px solid var(--border-glass, rgba(0, 0, 0, 0.08));
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-glass);
   color: var(--text-primary);
   font-size: 0.82rem;
   font-weight: 600;

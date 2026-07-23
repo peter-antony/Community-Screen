@@ -10,9 +10,7 @@
 .app-sidebar {
   width: var(--sidebar-width);
   height: 100vh;
-  /* display: flex;
-  flex-direction: column; */
-  border-radius: 0;
+  background: var(--bg-secondary);
   border-right: 1px solid var(--border-glass);
   border-top: none;
   border-bottom: none;
@@ -268,12 +266,13 @@
   border-top: none;
   border-left: none;
   border-right: none;
+  border-bottom: 1px solid var(--border-glass);
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 32px;
   z-index: 5;
-  background: rgba(3, 7, 18, 0.4);
+  background: var(--bg-secondary);
 }
 
 .header-breadcrumbs h2 {
