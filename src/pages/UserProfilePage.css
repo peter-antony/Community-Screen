@@ -192,6 +192,7 @@
   justify-content: space-around;
   border-top: 1px solid var(--border-glass);
   padding-top: 24px;
+  margin-top: 12px;
 }
 
 .count-unit {

@@ -1,10 +1,10 @@
 .community-list-page {
-  padding: 32px;
+  padding: 16px 24px;
   max-width: 1400px;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 28px;
+  gap: 16px;
 }
 
 /* Toolbar Panel */
@@ -185,7 +185,7 @@
   border-radius: 4px;
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(255,255,255,0.1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .status-badge-absolute.online {
@@ -248,9 +248,19 @@
   border: 2px solid #080d1a;
 }
 
-.avatar-status-ring.online { background-color: var(--accent-green); box-shadow: 0 0 8px var(--accent-green); }
-.avatar-status-ring.away { background-color: var(--accent-amber); box-shadow: 0 0 8px var(--accent-amber); }
-.avatar-status-ring.offline { background-color: var(--text-muted); }
+.avatar-status-ring.online {
+  background-color: var(--accent-green);
+  box-shadow: 0 0 8px var(--accent-green);
+}
+
+.avatar-status-ring.away {
+  background-color: var(--accent-amber);
+  box-shadow: 0 0 8px var(--accent-amber);
+}
+
+.avatar-status-ring.offline {
+  background-color: var(--text-muted);
+}
 
 .card-main-info {
   cursor: pointer;
@@ -360,7 +370,7 @@
 /* Card Actions Panel */
 .card-actions-panel {
   border-top: 1px solid var(--border-glass);
-  background: rgba(255,255,255,0.01);
+  background: rgba(255, 255, 255, 0.01);
   padding: 14px 20px;
   display: flex;
   align-items: center;
@@ -436,9 +446,11 @@
     flex-direction: column;
     align-items: stretch;
   }
+
   .search-box-wrapper {
     max-width: 100%;
   }
+
   .pioneers-grid {
     grid-template-columns: 1fr;
   }

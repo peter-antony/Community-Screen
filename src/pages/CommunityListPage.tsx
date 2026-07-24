@@ -21,7 +21,6 @@ export const CommunityListPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRole, setSelectedRole] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All');
-  const [sortBy, setSortBy] = useState<'name' | 'followers'>('name');
 
   // Derive roles for filter tabs
   const roles = ['All', 'Developer', 'Designer', 'Strategist', 'Artist'];
@@ -39,19 +38,13 @@ export const CommunityListPage: React.FC = () => {
 
     const matchesStatus =
       statusFilter === 'All' ||
-      (statusFilter === 'Online' && u.status === 'online');
+      u.status?.toLowerCase() === statusFilter.toLowerCase();
 
     return matchesSearch && matchesRole && matchesStatus;
   });
 
-  // Handle sorting
-  const sortedUsers = [...filteredUsers].sort((a, b) => {
-    if (sortBy === 'name') {
-      return a.name.localeCompare(b.name);
-    } else {
-      return b.followersCount - a.followersCount;
-    }
-  });
+  // Default alphabetical sorting
+  const sortedUsers = [...filteredUsers].sort((a, b) => a.name.localeCompare(b.name));
 
   const handleOpenChat = (userId: string) => {
     setActiveChatUserId(userId);
@@ -88,39 +81,21 @@ export const CommunityListPage: React.FC = () => {
           {/* Status selector */}
           <div className="control-select">
             <span className="control-label">Status:</span>
-            <button
-              className={`filter-tab ${statusFilter === 'All' ? 'active' : ''}`}
-              onClick={() => setStatusFilter('All')}
-            >
-              All
-            </button>
-            <button
-              className={`filter-tab ${statusFilter === 'Online' ? 'active' : ''}`}
-              onClick={() => setStatusFilter('Online')}
-            >
-              Online
-            </button>
-          </div>
-
-          <div className="divider-line" />
-
-          {/* Sort selector */}
-          <div className="control-select">
-            <span className="control-label">Sort:</span>
-            <select
-              className="styled-select"
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as 'name' | 'followers')}
-            >
-              <option value="name">Alphabetical</option>
-              <option value="followers">Popularity</option>
-            </select>
+            {['All', 'Online', 'Away', 'Offline'].map((st) => (
+              <button
+                key={st}
+                className={`filter-tab ${statusFilter === st ? 'active' : ''}`}
+                onClick={() => setStatusFilter(st)}
+              >
+                {st}
+              </button>
+            ))}
           </div>
         </div>
       </section>
 
       {/* Role Tabs */}
-      <section className="role-tabs-container">
+      {/* <section className="role-tabs-container">
         {roles.map((role) => (
           <button
             key={role}
@@ -130,7 +105,7 @@ export const CommunityListPage: React.FC = () => {
             {role === 'All' ? 'All Pioneers' : `${role}s`}
           </button>
         ))}
-      </section>
+      </section> */}
 
       {/* Pioneer Cards Grid */}
       <motion.section
@@ -169,7 +144,7 @@ export const CommunityListPage: React.FC = () => {
 
                 <div className="card-main-info" onClick={() => navigate(`/profile/${pioneer.id}`)}>
                   <h3>{pioneer.name}</h3>
-                  <span className="pioneer-role">{pioneer.role}</span>
+                  {/* <span className="pioneer-role">{pioneer.role}</span> */}
                   <div className="location-wrapper">
                     <MapPin size={12} />
                     <span>{pioneer.location}</span>
