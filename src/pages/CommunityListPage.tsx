@@ -1,29 +1,33 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCommunication } from '../context/CommunicationContext';
 import type { User } from '../types';
 import {
   Search,
-  MapPin,
-  MessageSquare,
-  Phone,
-  Video,
   UserCheck,
-  UserPlus
+  UserPlus,
+  MapPin
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import './CommunityListPage.css';
 
 export const CommunityListPage: React.FC = () => {
-  const { users, toggleFollow, startCall, setActiveChatUserId } = useCommunication();
+  const { users, toggleFollow } = useCommunication();
   const navigate = useNavigate();
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedRole, setSelectedRole] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All');
 
-  // Derive roles for filter tabs
-  const roles = ['All', 'Developer', 'Designer', 'Strategist', 'Artist'];
+  // Track responsive screen size for mobile spatial 3D constellation layout
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Handle filtering
   const filteredUsers = users.filter((u) => {
@@ -32,189 +36,198 @@ export const CommunityListPage: React.FC = () => {
       u.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
       u.role.toLowerCase().includes(searchQuery.toLowerCase());
 
-    const matchesRole =
-      selectedRole === 'All' ||
-      u.role.toLowerCase().includes(selectedRole.toLowerCase());
-
     const matchesStatus =
       statusFilter === 'All' ||
       u.status?.toLowerCase() === statusFilter.toLowerCase();
 
-    return matchesSearch && matchesRole && matchesStatus;
+    return matchesSearch && matchesStatus;
   });
 
   // Default alphabetical sorting
   const sortedUsers = [...filteredUsers].sort((a, b) => a.name.localeCompare(b.name));
 
-  const handleOpenChat = (userId: string) => {
-    setActiveChatUserId(userId);
-    navigate('/chat');
-  };
+  const totalClusters = Math.ceil(sortedUsers.length / 7) || 1;
+  const clusterStep = isMobile ? 460 : 500;
+  const stageHeight = Math.max(isMobile ? 500 : 560, totalClusters * clusterStep + 40);
 
-  const handleLaunchCall = (user: User, type: 'audio' | 'video') => {
-    startCall(user, type);
-    navigate('/call');
+  // Helper to compute spatial 3D coordinates ("here and there") for card [index]
+  const getSpatialCardStyle = (index: number): React.CSSProperties => {
+    const clusterIndex = Math.floor(index / 7);
+    const subIndex = index % 7;
+    const baseTop = clusterIndex * clusterStep; // Step per constellation cluster so NO OVERLAP
+
+    // Desktop Spatial Positions ("here and there")
+    const desktopPositions = [
+      { left: '50%', top: baseTop + 140, transform: 'translate(-50%, -50%) scale(1.04)', zIndex: 12 }, // 0: Center Featured Card
+      { left: '12%', top: baseTop + 35, transform: 'rotateX(4deg) rotateY(6deg)', zIndex: 6 },        // 1: Top Left
+      { left: '14%', top: baseTop + 300, transform: 'rotateX(4deg) rotateY(6deg)', zIndex: 6 },       // 2: Bottom Left
+      { right: '12%', top: baseTop + 45, transform: 'rotateX(4deg) rotateY(-6deg)', zIndex: 6 },     // 3: Top Right
+      { right: '14%', top: baseTop + 290, transform: 'rotateX(4deg) rotateY(-6deg)', zIndex: 6 },     // 4: Bottom Right
+      { left: '32%', top: baseTop + 430, transform: 'scale(0.95)', zIndex: 5 },                        // 5: Bottom Mid Left
+      { right: '32%', top: baseTop + 430, transform: 'scale(0.95)', zIndex: 5 }                        // 6: Bottom Mid Right
+    ];
+
+    // Mobile Spatial Positions ("here and there" floating constellation layout tuned for mobile screens)
+    const mobilePositions = [
+      { left: '50%', top: baseTop + 130, transform: 'translate(-50%, -50%) scale(0.92)', zIndex: 12 }, // 0: Center Featured Card
+      { left: '2%', top: baseTop + 25, transform: 'scale(0.82)', zIndex: 6 },                          // 1: Top Left
+      { left: '4%', top: baseTop + 250, transform: 'scale(0.82)', zIndex: 6 },                         // 2: Bottom Left
+      { right: '2%', top: baseTop + 35, transform: 'scale(0.82)', zIndex: 6 },                         // 3: Top Right
+      { right: '4%', top: baseTop + 240, transform: 'scale(0.82)', zIndex: 6 },                        // 4: Bottom Right
+      { left: '16%', top: baseTop + 360, transform: 'scale(0.78)', zIndex: 5 },                        // 5: Bottom Mid Left
+      { right: '16%', top: baseTop + 360, transform: 'scale(0.78)', zIndex: 5 }                        // 6: Bottom Mid Right
+    ];
+
+    const positions = isMobile ? mobilePositions : desktopPositions;
+    const pos = positions[subIndex];
+    return {
+      position: 'absolute',
+      ...(pos.left ? { left: pos.left } : {}),
+      ...(pos.right ? { right: pos.right } : {}),
+      top: `${pos.top}px`,
+      transform: pos.transform,
+      zIndex: pos.zIndex
+    };
   };
 
   return (
     <div className="community-list-page">
-      <div className="explore-title-block">
-        {/* <Compass className="explore-compass-icon" size={28} /> */}
-        <div>
-          <h1>Users</h1>
-        </div>
-      </div>
-      {/* Filters Toolbar */}
-      <section className="toolbar-panel glass-panel">
-        <div className="search-box-wrapper">
-          <Search size={18} className="search-icon" />
-          <input
-            type="text"
-            className="search-input"
-            placeholder="Search by name, role, location..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
 
-        <div className="filter-controls">
-          {/* Status selector */}
-          <div className="control-select">
-            <span className="control-label">Status:</span>
-            {['All', 'Online', 'Away', 'Offline'].map((st) => (
-              <button
-                key={st}
-                className={`filter-tab ${statusFilter === st ? 'active' : ''}`}
-                onClick={() => setStatusFilter(st)}
-              >
-                {st}
-              </button>
-            ))}
+      {/* Top Floating Glass Search & Controls Bar */}
+      <div className="spatial-top-bar">
+        <div className="spatial-search-container">
+          <div className="spatial-search-box">
+            <Search size={18} className="search-icon" />
+            <input
+              type="text"
+              className="spatial-search-input"
+              placeholder="Search..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
           </div>
         </div>
-      </section>
 
-      {/* Role Tabs */}
-      {/* <section className="role-tabs-container">
-        {roles.map((role) => (
-          <button
-            key={role}
-            className={`role-tab-btn ${selectedRole === role ? 'active' : ''}`}
-            onClick={() => setSelectedRole(role)}
-          >
-            {role === 'All' ? 'All Pioneers' : `${role}s`}
-          </button>
-        ))}
-      </section> */}
-
-      {/* Pioneer Cards Grid */}
-      <motion.section
-        className="pioneers-grid"
-        layout
-      >
-        <AnimatePresence mode="popLayout">
-          {sortedUsers.map((pioneer) => (
-            <motion.div
-              layout
-              key={pioneer.id}
-              className="pioneer-card glass-panel glass-panel-hover"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+        {/* Status Filter Tabs (Top Right) */}
+        <div className="spatial-status-filter">
+          {['All', 'Online', 'Away', 'Offline'].map((st) => (
+            <button
+              key={st}
+              className={`spatial-status-btn ${statusFilter === st ? 'active' : ''}`}
+              onClick={() => setStatusFilter(st)}
             >
-              {/* Card Banner */}
-              <div
-                className="card-banner"
-                style={{ backgroundImage: `url(${pioneer.coverImage})` }}
-              >
-                <span className={`status-badge-absolute ${pioneer.status}`}>
-                  {pioneer.status === 'online' && 'ONLINE'}
-                  {pioneer.status === 'away' && 'AWAY'}
-                  {pioneer.status === 'offline' && 'OFFLINE'}
-                </span>
-              </div>
-
-              {/* Card Body */}
-              <div className="card-body">
-                <div className="card-avatar-wrapper" onClick={() => navigate(`/profile/${pioneer.id}`)}>
-                  <img src={pioneer.avatar} alt={pioneer.name} className="card-avatar" />
-                  <span className={`avatar-status-ring ${pioneer.status}`} />
-                </div>
-
-                <div className="card-main-info" onClick={() => navigate(`/profile/${pioneer.id}`)}>
-                  <h3>{pioneer.name}</h3>
-                  {/* <span className="pioneer-role">{pioneer.role}</span> */}
-                  <div className="location-wrapper">
-                    <MapPin size={12} />
-                    <span>{pioneer.location}</span>
-                  </div>
-                </div>
-
-                <p className="pioneer-bio">{pioneer.bio}</p>
-
-                <div className="skills-row">
-                  {pioneer.skills.slice(0, 3).map((skill, idx) => (
-                    <span key={idx} className="skill-tag">{skill}</span>
-                  ))}
-                  {pioneer.skills.length > 3 && (
-                    <span className="skill-tag-more">+{pioneer.skills.length - 3}</span>
-                  )}
-                </div>
-
-                <div className="card-stats-row">
-                  <div className="card-stat">
-                    <span className="stat-v">{pioneer.followersCount}</span>
-                    <span className="stat-l">Followers</span>
-                  </div>
-                  <div className="card-stat">
-                    <span className="stat-v">{pioneer.followingCount}</span>
-                    <span className="stat-l">Following</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Card Actions Panel */}
-              <div className="card-actions-panel">
-                <button
-                  className={`follow-card-btn ${pioneer.isFollowing ? 'following' : ''}`}
-                  onClick={() => toggleFollow(pioneer.id)}
-                  title={pioneer.isFollowing ? 'Unfollow Pioneer' : 'Follow Pioneer'}
-                >
-                  {pioneer.isFollowing ? <UserCheck size={18} /> : <UserPlus size={18} />}
-                  <span>{pioneer.isFollowing ? 'Following' : 'Follow'}</span>
-                </button>
-
-                <div className="comms-actions-group">
-                  <button
-                    className="btn-icon btn-icon-cyan"
-                    onClick={() => handleOpenChat(pioneer.id)}
-                    title="Quantum Message"
-                  >
-                    <MessageSquare size={16} />
-                  </button>
-                  <button
-                    className="btn-icon btn-icon-violet"
-                    onClick={() => handleLaunchCall(pioneer, 'audio')}
-                    title="Voice Call"
-                    disabled={pioneer.status === 'offline'}
-                  >
-                    <Phone size={16} />
-                  </button>
-                  <button
-                    className="btn-icon btn-icon-rose"
-                    onClick={() => handleLaunchCall(pioneer, 'video')}
-                    title="Video Stream Portal"
-                    disabled={pioneer.status === 'offline'}
-                  >
-                    <Video size={16} />
-                  </button>
-                </div>
-              </div>
-            </motion.div>
+              {st}
+            </button>
           ))}
+        </div>
+      </div>
+
+      {/* 3D Floating Spatial Constellation Arena (Scrollable Canvas) */}
+      <div className="spatial-arena-stage" style={{ height: `${stageHeight}px` }}>
+
+        {/* SVG Constellation Lines Canvas */}
+        <svg className="constellation-svg-canvas" style={{ height: `${stageHeight}px` }}>
+          {Array.from({ length: totalClusters }).map((_, cIdx) => {
+            const baseTop = cIdx * clusterStep;
+            return (
+              <g key={cIdx}>
+                {/* Center to Top-Left */}
+                <path
+                  className="constellation-line"
+                  d={`M 500 ${baseTop + 140} Q 320 ${baseTop + 85} 140 ${baseTop + 35}`}
+                />
+                {/* Center to Bottom-Left */}
+                <path
+                  className="constellation-line"
+                  d={`M 500 ${baseTop + 140} Q 340 ${baseTop + 220} 160 ${baseTop + 300}`}
+                />
+                {/* Center to Top-Right */}
+                <path
+                  className="constellation-line"
+                  d={`M 500 ${baseTop + 140} Q 680 ${baseTop + 90} 860 ${baseTop + 45}`}
+                />
+                {/* Center to Bottom-Right */}
+                <path
+                  className="constellation-line"
+                  d={`M 500 ${baseTop + 140} Q 680 ${baseTop + 215} 840 ${baseTop + 290}`}
+                />
+                <circle className="constellation-node-dot" cx="320" cy={baseTop + 85} r="3.5" />
+                <circle className="constellation-node-dot amber" cx="320" cy={baseTop + 220} r="3.5" />
+                <circle className="constellation-node-dot" cx="680" cy={baseTop + 90} r="3.5" />
+                <circle className="constellation-node-dot amber" cx="680" cy={baseTop + 215} r="3.5" />
+              </g>
+            );
+          })}
+        </svg>
+
+        <AnimatePresence mode="popLayout">
+          {sortedUsers.map((pioneer, index) => {
+            const isFeatured = index % 7 === 0;
+            return (
+              <motion.div
+                layout
+                key={pioneer.id}
+                className={`spatial-card-node ${isFeatured ? 'is-featured-node' : ''}`}
+                style={getSpatialCardStyle(index)}
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+                whileHover={{ y: -6, scale: 1.05 }}
+              >
+                {/* 3D Glass Block Main Card */}
+                <div className="pioneer-3d-card">
+                  {/* Top Avatar with Status Dot */}
+                  <div className="card-3d-avatar-container" onClick={() => navigate(`/profile/${pioneer.id}`)}>
+                    <img src={pioneer.avatar} alt={pioneer.name} className="card-3d-avatar" />
+                    <span className={`card-3d-status-dot ${pioneer.status}`} />
+                  </div>
+
+                  {/* Name */}
+                  <h3 className="card-3d-name">
+                    {pioneer.name}
+                  </h3>
+
+                  {/* Location Subtitle */}
+                  <div className="card-3d-role-location">
+                    <div className="location-pill">
+                      <MapPin size={11} />
+                      <span>{pioneer.location}</span>
+                    </div>
+                  </div>
+
+                  <div className="followDiv">
+                    {/* Stats: Followers */}
+                    <div className="card-3d-stats">
+                      <span className="stat-label-top">Followers</span>
+                      <span className="stat-value">{pioneer.followersCount}</span>
+                    </div>
+
+                    {/* Follow Button */}
+                    <button
+                      className={`card-3d-follow-btn ${pioneer.isFollowing ? 'following' : ''}`}
+                      onClick={() => toggleFollow(pioneer.id)}
+                    >
+                      {pioneer.isFollowing ? <UserCheck size={14} /> : <UserPlus size={14} />}
+                      <span>{pioneer.isFollowing ? 'Following' : 'Follow'}</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Ambient Underglow */}
+                <div className={`card-underglow ${pioneer.status}`} />
+
+                {/* Floating Status Label Below Card */}
+                <div className={`card-3d-status-label ${pioneer.status}`}>
+                  {pioneer.status === 'online' && 'Online'}
+                  {pioneer.status === 'away' && 'Away'}
+                  {pioneer.status === 'offline' && 'Offline'}
+                </div>
+              </motion.div>
+            );
+          })}
         </AnimatePresence>
-      </motion.section>
+      </div>
 
       {sortedUsers.length === 0 && (
         <div className="empty-results glass-panel">

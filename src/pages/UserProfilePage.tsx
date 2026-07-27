@@ -2,19 +2,23 @@ import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCommunication } from '../context/CommunicationContext';
-import { 
-  MapPin, 
-  Briefcase, 
-  MessageSquare, 
-  Phone, 
-  Video, 
-  UserCheck, 
-  UserPlus, 
-  Edit3, 
+import {
+  MapPin,
+  Briefcase,
+  MessageSquare,
+  Phone,
+  Video,
+  UserCheck,
+  UserPlus,
+  Edit3,
   Check,
   Cpu,
   Bookmark,
-  ExternalLink
+  ExternalLink,
+  ArrowLeft,
+  MessageCircleCheck,
+  MessageCircleCode,
+  MessageCircleMore
 } from 'lucide-react';
 import './UserProfilePage.css';
 
@@ -27,8 +31,8 @@ export const UserProfilePage: React.FC = () => {
   const isOwnProfile = id === authUser?.id || !id;
 
   // Find target user
-  const profileUser = isOwnProfile 
-    ? authUser 
+  const profileUser = isOwnProfile
+    ? authUser
     : users.find((u) => u.id === id);
 
   const [activeTab, setActiveTab] = useState<'about' | 'projects'>('about');
@@ -93,14 +97,22 @@ export const UserProfilePage: React.FC = () => {
   return (
     <div className="user-profile-page">
       {/* Cover Banner */}
-      <div 
-        className="profile-cover" 
+      <div
+        className="profile-cover"
         style={{ backgroundImage: `url(${profileUser.coverImage || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80'})` }}
       >
+        <button
+          className="cover-back-btn"
+          onClick={() => navigate(-1)}
+          title="Go Back"
+          aria-label="Go Back"
+        >
+          <ArrowLeft size={20} />
+        </button>
         <div className="cover-overlay" />
       </div>
 
-      {/* Profile Header Details */}
+      {/* Profile Header Card */}
       <section className="profile-header-card glass-panel">
         <div className="profile-main-layout">
           <div className="profile-avatar-block">
@@ -111,17 +123,17 @@ export const UserProfilePage: React.FC = () => {
           <div className="profile-name-details">
             {isEditing ? (
               <div className="edit-fields-row">
-                <input 
-                  type="text" 
-                  className="form-input edit-name-input" 
-                  value={editName} 
-                  onChange={(e) => setEditName(e.target.value)} 
+                <input
+                  type="text"
+                  className="form-input edit-name-input"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
                 />
-                <input 
-                  type="text" 
-                  className="form-input edit-role-input" 
-                  value={editRole} 
-                  onChange={(e) => setEditRole(e.target.value)} 
+                <input
+                  type="text"
+                  className="form-input edit-role-input"
+                  value={editRole}
+                  onChange={(e) => setEditRole(e.target.value)}
                 />
               </div>
             ) : (
@@ -138,16 +150,17 @@ export const UserProfilePage: React.FC = () => {
               <div className="meta-item">
                 <MapPin size={14} />
                 {isEditing ? (
-                  <input 
-                    type="text" 
-                    className="form-input edit-meta-input" 
-                    value={editLocation} 
-                    onChange={(e) => setEditLocation(e.target.value)} 
+                  <input
+                    type="text"
+                    className="form-input inline-edit-input"
+                    value={editLocation}
+                    onChange={(e) => setEditLocation(e.target.value)}
                   />
                 ) : (
                   <span>{profileUser.location}</span>
                 )}
               </div>
+
               <div className="meta-item">
                 <Briefcase size={14} />
                 <span>Pioneer Hub</span>
@@ -155,12 +168,12 @@ export const UserProfilePage: React.FC = () => {
             </div>
           </div>
 
-          {/* Action Row */}
+          {/* Action Buttons */}
           <div className="profile-action-controls">
             {isOwnProfile ? (
               isEditing ? (
-                <button className="btn btn-primary btn-save" onClick={handleSave}>
-                  <Check size={18} />
+                <button className="btn btn-primary btn-glow" onClick={handleSave}>
+                  <Check size={16} />
                   <span>Save Changes</span>
                 </button>
               ) : (
@@ -170,74 +183,74 @@ export const UserProfilePage: React.FC = () => {
                 </button>
               )
             ) : (
-              <>
-                <button 
-                  className={`btn ${profileUser.isFollowing ? 'btn-secondary following' : 'btn-primary'}`}
+              <div className="profile-btn-group">
+                <button
+                  className={`btn ${profileUser.isFollowing ? 'btn-secondary' : 'btn-primary btn-glow'}`}
                   onClick={() => toggleFollow(profileUser.id)}
                 >
-                  {profileUser.isFollowing ? <UserCheck size={18} /> : <UserPlus size={18} />}
+                  {profileUser.isFollowing ? <UserCheck size={16} /> : <UserPlus size={16} />}
                   <span>{profileUser.isFollowing ? 'Following' : 'Follow'}</span>
                 </button>
 
-                <div className="profile-btn-group">
-                  <button className="btn-icon btn-icon-cyan" onClick={handleOpenChat} title="Message">
-                    <MessageSquare size={18} />
-                  </button>
-                  <button 
-                    className="btn-icon btn-icon-violet" 
-                    onClick={() => handleCall('audio')}
-                    title="Audio Portal"
-                    disabled={profileUser.status === 'offline'}
-                  >
-                    <Phone size={18} />
-                  </button>
-                  <button 
-                    className="btn-icon btn-icon-rose" 
-                    onClick={() => handleCall('video')}
-                    title="Video Stream"
-                    disabled={profileUser.status === 'offline'}
-                  >
-                    <Video size={18} />
-                  </button>
-                </div>
-              </>
+                <button className="btn-icon-glass" onClick={handleOpenChat} title="Send Message">
+                  <MessageCircleMore size={18} />
+                </button>
+
+                <button
+                  className="btn-icon-glass"
+                  onClick={() => handleCall('audio')}
+                  title="Voice Call"
+                  disabled={profileUser.status === 'offline'}
+                >
+                  <Phone size={18} />
+                </button>
+
+                <button
+                  className="btn-icon-glass"
+                  onClick={() => handleCall('video')}
+                  title="Video Call"
+                  disabled={profileUser.status === 'offline'}
+                >
+                  <Video size={18} />
+                </button>
+              </div>
             )}
           </div>
         </div>
 
-        {/* Counts indicators */}
+        {/* Counts Strip */}
         <div className="profile-counts-strip">
           <div className="count-unit">
             <span className="count-val">{profileUser.followersCount}</span>
-            <span className="count-lbl">Followers</span>
+            <span className="count-lbl">FOLLOWERS</span>
           </div>
           <div className="count-divider" />
           <div className="count-unit">
             <span className="count-val">{profileUser.followingCount}</span>
-            <span className="count-lbl">Following</span>
+            <span className="count-lbl">FOLLOWING</span>
           </div>
           <div className="count-divider" />
           <div className="count-unit">
-            <span className="count-val">{profileUser.skills.length}</span>
-            <span className="count-lbl">Capabilities</span>
+            <span className="count-val">{profileUser.skills?.length || 5}</span>
+            <span className="count-lbl">CAPABILITIES</span>
           </div>
         </div>
       </section>
 
-      {/* Main Profile Tabs */}
+      {/* Profile Tabs Section */}
       <section className="profile-tabs-section">
         <div className="tabs-header-bar">
-          <button 
+          <button
             className={`tab-anchor ${activeTab === 'about' ? 'active' : ''}`}
             onClick={() => setActiveTab('about')}
           >
             Capabilities & Bio
           </button>
-          <button 
+          <button
             className={`tab-anchor ${activeTab === 'projects' ? 'active' : ''}`}
             onClick={() => setActiveTab('projects')}
           >
-            Digital Assets ({mockProjects.length})
+            Digital Assets (3)
           </button>
         </div>
 
@@ -245,27 +258,27 @@ export const UserProfilePage: React.FC = () => {
           {activeTab === 'about' ? (
             <div className="about-tab-content">
               <div className="profile-bio-box">
-                <h4>Quantum Bio</h4>
+                <h4>QUANTUM BIO</h4>
                 {isEditing ? (
-                  <textarea 
-                    className="form-input profile-textarea"
-                    rows={4}
+                  <textarea
+                    className="form-textarea profile-textarea"
                     value={editBio}
                     onChange={(e) => setEditBio(e.target.value)}
+                    rows={4}
                   />
                 ) : (
-                  <p>{profileUser.bio}</p>
+                  <p>{profileUser.bio || 'Bringing static screens to life through 3D renders, particle systems, and kinetic typography. Blender lover.'}</p>
                 )}
               </div>
 
               <div className="profile-skills-box">
-                <h4>System Capabilities</h4>
+                <h4>SYSTEM CAPABILITIES</h4>
                 <div className="skills-cloud">
-                  {profileUser.skills.map((skill, index) => (
-                    <div key={index} className="capability-tag">
-                      <Cpu size={12} className="tag-cap-icon" />
+                  {profileUser.skills.map((skill, i) => (
+                    <span key={i} className="capability-tag">
+                      <Cpu size={14} className="tag-cap-icon" />
                       <span>{skill}</span>
-                    </div>
+                    </span>
                   ))}
                 </div>
               </div>
@@ -276,17 +289,17 @@ export const UserProfilePage: React.FC = () => {
                 <div key={idx} className="project-card glass-panel">
                   <div className="project-header">
                     <div className="project-title-group">
-                      <Bookmark size={16} className="project-icon" />
+                      <Bookmark size={18} className="project-icon" />
                       <h5>{proj.title}</h5>
                     </div>
                     <a href={proj.url} target="_blank" rel="noreferrer" className="project-link">
-                      <ExternalLink size={14} />
+                      <ExternalLink size={16} />
                     </a>
                   </div>
                   <p className="project-desc">{proj.desc}</p>
                   <div className="project-tags-row">
                     {proj.tags.map((t, i) => (
-                      <span key={i} className="skill-tag">{t}</span>
+                      <span key={i} className="project-tag-pill">{t}</span>
                     ))}
                   </div>
                 </div>

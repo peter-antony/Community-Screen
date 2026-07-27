@@ -5,10 +5,14 @@
   --font-body: 'Plus Jakarta Sans', sans-serif;
 
   /* Dark Theme Palette with Clear Contrast & Layering */
-  --bg-primary: #0b0f19;      /* Deep page background canvas */
-  --bg-secondary: #0f172a;    /* Distinct Sidebar & Top Header background (Slate 900) */
-  --bg-tertiary: #172033;     /* Sunken container background */
-  --bg-card: #1e293b;         /* Elevated Content Card surface (Slate 800) */
+  --bg-primary: #0b0f19;
+  /* Deep page background canvas */
+  --bg-secondary: #0f172a;
+  /* Distinct Sidebar & Top Header background (Slate 900) */
+  --bg-tertiary: #172033;
+  /* Sunken container background */
+  --bg-card: #1e293b;
+  /* Elevated Content Card surface (Slate 800) */
 
   --accent-cyan: #06b6d4;
   --accent-violet: #a855f7;
@@ -578,4 +582,20 @@ a {
   border: 1px solid var(--accent-green);
   opacity: 0.6;
   animation: pulse-glow 2s infinite ease-in-out;
+}
+
+@media (max-width: 600px) {
+  .create-community-btn {
+    padding: 16px 16px !important;
+    border-radius: 50% !important;
+
+    svg {
+      height: 36px;
+      width: 36px;
+    }
+  }
+
+  .mobile-none {
+    display: none;
+  }
 }
