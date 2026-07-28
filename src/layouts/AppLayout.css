@@ -44,7 +44,7 @@
   gap: 10px;
 }
 
-.app-sidebar.collapsed .logo-text {
+.app-sidebar.collapsed .logo-container {
   display: none;
 }
 
@@ -67,27 +67,24 @@
 }
 
 .sidebar-toggle {
-  background: transparent;
-  border: none;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-glass);
   color: var(--text-secondary);
   cursor: pointer;
-  width: 24px;
-  height: 24px;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 6px;
-  transition: all 0.2s;
+  border-radius: 8px;
+  transition: all 0.2s ease;
 }
 
 .sidebar-toggle:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.08);
   color: var(--text-primary);
-}
-
-.app-sidebar.collapsed .sidebar-toggle {
-  position: absolute;
-  top: 75px;
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: scale(1.05);
 }
 
 .sidebar-nav {
