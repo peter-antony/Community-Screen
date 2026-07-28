@@ -1,22 +1,29 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useCommunication } from '../context/CommunicationContext';
 import type { User } from '../types';
 import {
   Search,
   UserCheck,
   UserPlus,
-  MapPin
+  MapPin,
+  Check,
+  ArrowLeft
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { supabase } from '../supabaseClient';
 import './CommunityListPage.css';
 
 export const CommunityListPage: React.FC = () => {
   const { users, toggleFollow } = useCommunication();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const addMemberForId = searchParams.get('addMemberFor');
 
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
+  const [addedMemberIds, setAddedMemberIds] = useState<string[]>([]);
+  const [targetCommunity, setTargetCommunity] = useState<any>(null);
 
   // Track responsive screen size for mobile spatial 3D constellation layout
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768);
@@ -28,6 +35,84 @@ export const CommunityListPage: React.FC = () => {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // Fetch target community from Supabase community_list table when addMemberFor is passed
+  useEffect(() => {
+    if (addMemberForId) {
+      fetchTargetCommunity(addMemberForId);
+    }
+  }, [addMemberForId, users]);
+
+  const fetchTargetCommunity = async (commId: string) => {
+    const { data, error } = await supabase
+      .from('community_list')
+      .select('*')
+      .eq('id', commId)
+      .single();
+
+    if (error) {
+      console.error('Error fetching target community from Supabase:', error);
+      return;
+    }
+
+    if (data) {
+      setTargetCommunity(data);
+      const attendees = typeof data.attendees === 'string' ? JSON.parse(data.attendees) : (data.attendees || []);
+      const attendeeNames: string[] = attendees.map((a: any) => a.name);
+      const existingMemberIds = users.filter(u => attendeeNames.includes(u.name)).map(u => u.id);
+      setAddedMemberIds(existingMemberIds);
+    }
+  };
+
+  const handleToggleAddMember = async (pioneer: User) => {
+    if (!addMemberForId) return;
+
+    const isAlreadyAdded = addedMemberIds.includes(pioneer.id);
+    const updatedIds = isAlreadyAdded
+      ? addedMemberIds.filter((id) => id !== pioneer.id)
+      : [...addedMemberIds, pioneer.id];
+
+    setAddedMemberIds(updatedIds);
+
+    try {
+      // Fetch latest community record from Supabase
+      const { data } = await supabase
+        .from('community_list')
+        .select('*')
+        .eq('id', addMemberForId)
+        .single();
+
+      let currentAttendees: { name: string; avatar: string }[] = [];
+      if (data && data.attendees) {
+        currentAttendees = typeof data.attendees === 'string' ? JSON.parse(data.attendees) : data.attendees;
+      }
+
+      if (isAlreadyAdded) {
+        currentAttendees = currentAttendees.filter((a) => a.name !== pioneer.name);
+      } else {
+        if (!currentAttendees.some((a) => a.name === pioneer.name)) {
+          currentAttendees.push({
+            name: pioneer.name,
+            avatar: pioneer.avatar
+          });
+        }
+      }
+
+      // Update community_list table in Supabase
+      const { error: updateErr } = await supabase
+        .from('community_list')
+        .update({ attendees: currentAttendees })
+        .eq('id', addMemberForId);
+
+      if (updateErr) {
+        console.error('Error updating community attendees in Supabase:', updateErr);
+      } else {
+        console.log(`Successfully updated attendees for community ${addMemberForId} in Supabase!`);
+      }
+    } catch (err) {
+      console.error('Failed to update community attendee in Supabase:', err);
+    }
+  };
 
   // Handle filtering
   const filteredUsers = users.filter((u) => {
@@ -107,6 +192,18 @@ export const CommunityListPage: React.FC = () => {
             />
           </div>
         </div>
+
+        {/* Add Member Mode Banner if navigated with addMemberFor */}
+        {addMemberForId && (
+          <div className="add-member-mode-banner">
+            <UserPlus size={16} className="banner-icon" />
+            <span>Adding members to {targetCommunity?.name || 'Community'}</span>
+            <button className="btn-done-adding" onClick={() => navigate(-1)}>
+              <Check size={14} />
+              <span>Done</span>
+            </button>
+          </div>
+        )}
 
         {/* Status Filter Tabs (Top Right) */}
         <div className="spatial-status-filter">
@@ -203,14 +300,24 @@ export const CommunityListPage: React.FC = () => {
                       <span className="stat-value">{pioneer.followersCount}</span>
                     </div>
 
-                    {/* Follow Button */}
-                    <button
-                      className={`card-3d-follow-btn ${pioneer.isFollowing ? 'following' : ''}`}
-                      onClick={() => toggleFollow(pioneer.id)}
-                    >
-                      {pioneer.isFollowing ? <UserCheck size={14} /> : <UserPlus size={14} />}
-                      <span>{pioneer.isFollowing ? 'Following' : 'Follow'}</span>
-                    </button>
+                    {/* Follow / Add Member Button */}
+                    {addMemberForId ? (
+                      <button
+                        className={`card-3d-follow-btn ${addedMemberIds.includes(pioneer.id) ? 'following' : ''}`}
+                        onClick={() => handleToggleAddMember(pioneer)}
+                      >
+                        {addedMemberIds.includes(pioneer.id) ? <Check size={14} /> : <UserPlus size={14} />}
+                        <span>{addedMemberIds.includes(pioneer.id) ? 'Added' : 'Add Member'}</span>
+                      </button>
+                    ) : (
+                      <button
+                        className={`card-3d-follow-btn ${pioneer.isFollowing ? 'following' : ''}`}
+                        onClick={() => toggleFollow(pioneer.id)}
+                      >
+                        {pioneer.isFollowing ? <UserCheck size={14} /> : <UserPlus size={14} />}
+                        <span>{pioneer.isFollowing ? 'Following' : 'Follow'}</span>
+                      </button>
+                    )}
                   </div>
                 </div>
 

@@ -167,6 +167,51 @@ const THEME_MAPS: Record<string, ThemeConfig> = {
 //   }
 // ];
 
+export interface CategoryOption {
+  id: string;
+  label: string;
+  emoji: string;
+  categoryKey: string;
+  image: string;
+}
+
+export const CATEGORY_OPTIONS: CategoryOption[] = [
+  { id: 'sport', label: 'sport', emoji: '🏃', categoryKey: 'Match', image: 'https://images.unsplash.com/photo-1517649763962-0c623266ddc0?w=800&auto=format&fit=crop&q=60' },
+  { id: 'night_out', label: 'night out', emoji: '🕺', categoryKey: 'Social', image: 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=800&auto=format&fit=crop&q=60' },
+  { id: 'picnic', label: 'picnic', emoji: '🧺', categoryKey: 'Social', image: 'https://images.unsplash.com/photo-1526401485004-46910ecc8e51?w=800&auto=format&fit=crop&q=60' },
+  { id: 'event', label: 'event', emoji: '🎪', categoryKey: 'Meetup', image: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=800&auto=format&fit=crop&q=60' },
+  { id: 'fitness', label: 'fitness', emoji: '🏋️', categoryKey: 'Practice', image: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800&auto=format&fit=crop&q=60' },
+  { id: 'house_party', label: 'house party', emoji: '🏡', categoryKey: 'Social', image: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&auto=format&fit=crop&q=60' },
+  { id: 'volleyball', label: 'beach volleyball', emoji: '🏐', categoryKey: 'Match', image: 'https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?w=800&auto=format&fit=crop&q=60' },
+  { id: 'swimming', label: 'swimming', emoji: '🏊', categoryKey: 'Practice', image: 'https://images.unsplash.com/photo-1530549387789-4c1017266635?w=800&auto=format&fit=crop&q=60' },
+  { id: 'climbing', label: 'climbing', emoji: '🧗', categoryKey: 'Practice', image: 'https://images.unsplash.com/photo-1522163182402-834f871fd851?w=800&auto=format&fit=crop&q=60' },
+  { id: 'skating', label: 'skating', emoji: '🛼', categoryKey: 'Practice', image: 'https://images.unsplash.com/photo-1547051981-197857e2b75e?w=800&auto=format&fit=crop&q=60' },
+  { id: 'dancing', label: 'dancing', emoji: '💃', categoryKey: 'Social', image: 'https://images.unsplash.com/photo-1504609773096-104ff2c73ba4?w=800&auto=format&fit=crop&q=60' },
+  { id: 'campfire', label: 'campfire', emoji: '🪵', categoryKey: 'Meetup', image: 'https://images.unsplash.com/photo-1470246973918-29a93221c455?w=800&auto=format&fit=crop&q=60' },
+  { id: 'flex_working', label: 'flex working', emoji: '💻', categoryKey: 'Workshop', image: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=800&auto=format&fit=crop&q=60' },
+  { id: 'walking', label: 'walking', emoji: '🥾', categoryKey: 'Meetup', image: 'https://images.unsplash.com/photo-1551632811-561732d1e306?w=800&auto=format&fit=crop&q=60' },
+  { id: 'adventure', label: 'adventure', emoji: '🚀', categoryKey: 'Meetup', image: 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800&auto=format&fit=crop&q=60' },
+  { id: 'creative', label: 'creative', emoji: '🎨', categoryKey: 'Workshop', image: 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=800&auto=format&fit=crop&q=60' },
+  { id: 'dinner_party', label: 'dinner party', emoji: '🍽️', categoryKey: 'Social', image: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800&auto=format&fit=crop&q=60' },
+  { id: 'drinks', label: 'drinks', emoji: '🍻', categoryKey: 'Social', image: 'https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=800&auto=format&fit=crop&q=60' },
+  { id: 'games', label: 'games', emoji: '🎲', categoryKey: 'Social', image: 'https://images.unsplash.com/photo-1610890716171-6b1bb98ffd09?w=800&auto=format&fit=crop&q=60' },
+  { id: 'padel', label: 'padel', emoji: '🎾', categoryKey: 'Match', image: 'https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800&auto=format&fit=crop&q=60' },
+  { id: 'coffee', label: 'coffee', emoji: '☕', categoryKey: 'Social', image: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=800&auto=format&fit=crop&q=60' },
+  { id: 'drinks_park', label: 'drinks in the park', emoji: '🍹', categoryKey: 'Social', image: 'https://images.unsplash.com/photo-1536935338788-846bb9981813?w=800&auto=format&fit=crop&q=60' },
+  { id: 'party', label: 'party', emoji: '🎉', categoryKey: 'Social', image: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=800&auto=format&fit=crop&q=60' },
+  { id: 'water_activity', label: 'water activity', emoji: '🏄', categoryKey: 'Practice', image: 'https://images.unsplash.com/photo-1502680390469-be75c86b636f?w=800&auto=format&fit=crop&q=60' },
+  { id: 'cycling', label: 'cycling', emoji: '🚴', categoryKey: 'Match', image: 'https://images.unsplash.com/photo-1541625602330-2277a4c46182?w=800&auto=format&fit=crop&q=60' },
+  { id: 'soccer', label: 'playing soccer', emoji: '⚽', categoryKey: 'Match', image: 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=800&auto=format&fit=crop&q=60' },
+  { id: 'yoga', label: 'yoga', emoji: '🧘', categoryKey: 'Practice', image: 'https://images.unsplash.com/photo-1545205597-3d9d02c29597?w=800&auto=format&fit=crop&q=60' },
+  { id: 'golf', label: 'golf', emoji: '⛳', categoryKey: 'Match', image: 'https://images.unsplash.com/photo-1535131749006-b7f58c99034b?w=800&auto=format&fit=crop&q=60' },
+  { id: 'beach', label: 'beach', emoji: '🏖️', categoryKey: 'Meetup', image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&auto=format&fit=crop&q=60' },
+  { id: 'clothes_swap', label: 'clothes swap', emoji: '👕', categoryKey: 'Social', image: 'https://images.unsplash.com/photo-1489987707025-afc232f7ea0f?w=800&auto=format&fit=crop&q=60' },
+  { id: 'shopping', label: 'shopping', emoji: '🛍️', categoryKey: 'Social', image: 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=800&auto=format&fit=crop&q=60' },
+  { id: 'culture', label: 'culture', emoji: '🏛️', categoryKey: 'Workshop', image: 'https://images.unsplash.com/photo-1518998053901-5348d3961a04?w=800&auto=format&fit=crop&q=60' },
+  { id: 'movie', label: 'movie', emoji: '🍿', categoryKey: 'Social', image: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=800&auto=format&fit=crop&q=60' },
+  { id: 'barbecue', label: 'barbecue', emoji: '🍖', categoryKey: 'Social', image: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=800&auto=format&fit=crop&q=60' }
+];
+
 export const CommunityDetailsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -179,8 +224,9 @@ export const CommunityDetailsPage: React.FC = () => {
   const [isCreateActivityOpen, setIsCreateActivityOpen] = useState(false);
 
   // Form state for creating an activity
+  const [selectedCategoryItem, setSelectedCategoryItem] = useState<CategoryOption | null>(CATEGORY_OPTIONS[0]);
   const [newTitle, setNewTitle] = useState('');
-  const [newCategory, setNewCategory] = useState('Match');
+  const [newCategory, setNewCategory] = useState('sport');
   const [newImage, setNewImage] = useState('');
   const [newDateStr, setNewDateStr] = useState('');
   const [newTimeStr, setNewTimeStr] = useState('');
@@ -754,6 +800,36 @@ export const CommunityDetailsPage: React.FC = () => {
 
             {/* Modal Form Body */}
             <form onSubmit={handleCreateActivity} className="modal-form-body">
+              {/* Category Picker Selector (Icon + Label Grid) */}
+              <div className="form-group category-picker-group">
+                <label className="form-label">Category *</label>
+                <div className="category-scroll-container">
+                  <div className="category-items-grid">
+                    {CATEGORY_OPTIONS.map((cat) => {
+                      const isSelected = selectedCategoryItem?.id === cat.id || newCategory.toLowerCase() === cat.label.toLowerCase() || newCategory.toLowerCase() === cat.id.toLowerCase();
+                      return (
+                        <div
+                          key={cat.id}
+                          className={`category-item-card ${isSelected ? 'selected' : ''}`}
+                          onClick={() => {
+                            setSelectedCategoryItem(cat);
+                            setNewCategory(cat.label);
+                            if (!newImage) {
+                              setNewImage(cat.image);
+                            }
+                          }}
+                        >
+                          <div className="category-icon-circle">
+                            <span className="category-emoji">{cat.emoji}</span>
+                          </div>
+                          <span className="category-item-label">{cat.label}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
               <div className="form-group">
                 <label className="form-label">Activity Title *</label>
                 <input
@@ -766,7 +842,7 @@ export const CommunityDetailsPage: React.FC = () => {
                 />
               </div>
 
-              <div className="form-group-row">
+              {/* <div className="form-group-row">
                 <div className="form-group">
                   <label className="form-label">Category</label>
                   <select
@@ -794,7 +870,7 @@ export const CommunityDetailsPage: React.FC = () => {
                     className="form-input"
                   />
                 </div>
-              </div>
+              </div> */}
 
               <div className="form-group">
                 <label className="form-label">Cover Image URL (Optional)</label>

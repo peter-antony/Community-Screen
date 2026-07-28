@@ -632,9 +632,40 @@ export const NetworkConstellationPage: React.FC = () => {
                       ];
                       return (
                         <div className="community-mini-constellation-container" style={{ minHeight: '380px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', position: 'relative' }}>
-                          <button className="community-close-btn-new" onClick={() => setSelectedNode(null)}>
-                            <X size={14} />
-                          </button>
+                          {/* Top Action Header Bar (No Overlap with Orbit Nodes) */}
+                          <div className="community-popup-top-bar">
+                            <div className="community-quick-actions">
+                              <button
+                                className="btn-community-action btn-chat-action"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedNode(null);
+                                  navigate(`/community-chat?id=${selectedCommunity.id}`);
+                                }}
+                                title="Chat in Community Group"
+                              >
+                                <MessageCircleMore size={14} />
+                                <span>Chat</span>
+                              </button>
+
+                              <button
+                                className="btn-community-action btn-add-members-action"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedNode(null);
+                                  navigate(`/community?addMemberFor=${selectedCommunity.id}`);
+                                }}
+                                title="Add Members to Community"
+                              >
+                                <UserPlus size={14} />
+                                <span>Add Members</span>
+                              </button>
+                            </div>
+
+                            <button className="community-close-btn-new" onClick={() => setSelectedNode(null)}>
+                              <X size={14} />
+                            </button>
+                          </div>
 
                           <div className="community-mini-constellation" style={{ width: mobileContainerSize, height: mobileContainerSize, minHeight: mobileContainerSize, alignSelf: 'center', position: 'relative' }}>
                             {/* Orbit Rings */}
@@ -782,9 +813,40 @@ export const NetworkConstellationPage: React.FC = () => {
                 ) : (
                   selectedCommunity && (
                     <div className="community-mini-constellation-container">
-                      <button className="community-close-btn-new" onClick={() => setSelectedNode(null)}>
-                        <X size={14} />
-                      </button>
+                      {/* Top Action Header Bar (No Overlap with Orbit Nodes) */}
+                      <div className="community-popup-top-bar">
+                        <div className="community-quick-actions">
+                          <button
+                            className="btn-community-action btn-chat-action"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedNode(null);
+                              navigate(`/community-chat?id=${selectedCommunity.id}`);
+                            }}
+                            title="Chat in Community Group"
+                          >
+                            <MessageCircleMore size={14} />
+                            <span>Chat</span>
+                          </button>
+
+                          <button
+                            className="btn-community-action btn-add-members-action"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedNode(null);
+                              navigate(`/community?addMemberFor=${selectedCommunity.id}`);
+                            }}
+                            title="Add Members to Community"
+                          >
+                            <UserPlus size={14} />
+                            <span>Add Members</span>
+                          </button>
+                        </div>
+
+                        <button className="community-close-btn-new" onClick={() => setSelectedNode(null)}>
+                          <X size={14} />
+                        </button>
+                      </div>
 
                       <div className="community-mini-constellation">
                         {/* Centered Name */}
