@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import ReactDOM from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Star,
@@ -9,9 +10,13 @@ import {
   ChevronRight,
   Users,
   Compass,
-  MessageSquare,
   MessageCircleMore,
-  ArrowLeft
+  ArrowLeft,
+  Plus,
+  X,
+  Check,
+  UserPlus,
+  Sparkles
 } from 'lucide-react';
 import type { CommunityItem } from '../types';
 import './CommunityDetailsPage.css';
@@ -27,6 +32,22 @@ interface ThemeConfig {
   communityName: string;
   languages: string;
   mapImage: string;
+}
+
+export interface ActivityItem {
+  id: string;
+  title: string;
+  category: string;
+  image?: string;
+  dateStr: string;
+  timeStr: string;
+  location: string;
+  description: string;
+  hostName: string;
+  hostAvatar: string;
+  participantsCount: number;
+  maxParticipants: number;
+  isJoined?: boolean;
 }
 
 const THEME_MAPS: Record<string, ThemeConfig> = {
@@ -98,30 +119,98 @@ const THEME_MAPS: Record<string, ThemeConfig> = {
   }
 };
 
+// const INITIAL_ACTIVITIES: ActivityItem[] = [
+//   {
+//     id: 'act_1',
+//     title: '3v3 Mini Tournament & Warmup',
+//     category: 'Match',
+//     image: 'https://6a67310e2a4b54c07b29831b.imgix.net/snowboard.jpg',
+//     dateStr: 'Tomorrow',
+//     timeStr: '6:00 PM',
+//     location: 'Koramangala Turf, Pitch 2',
+//     description: 'Quick 3v3 mini tournament with round-robin matches. Winner stays on court!',
+//     hostName: 'Aisha Rahman',
+//     hostAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
+//     participantsCount: 6,
+//     maxParticipants: 12,
+//     isJoined: true
+//   },
+//   {
+//     id: 'act_2',
+//     title: 'Skill Drills & Penalty Shootout',
+//     category: 'Practice',
+//     image: 'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=800&auto=format&fit=crop&q=60',
+//     dateStr: 'Saturday',
+//     timeStr: '5:00 PM',
+//     location: 'Koramangala Turf, Main Pitch',
+//     description: 'Passing drills, footwork conditioning, and penalty shootout challenge with rewards for top scorers.',
+//     hostName: 'Vikram Malhotra',
+//     hostAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80',
+//     participantsCount: 8,
+//     maxParticipants: 15,
+//     isJoined: false
+//   },
+//   {
+//     id: 'act_3',
+//     title: 'Post-Match Refreshments & Strategy',
+//     category: 'Social',
+//     image: 'https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=800&auto=format&fit=crop&q=60',
+//     dateStr: 'Sunday',
+//     timeStr: '7:30 PM',
+//     location: 'Social Cafe, Koramangala',
+//     description: 'Relax after Sunday matches, discuss team tactics, watch weekend highlights, and grab craft drinks.',
+//     hostName: 'Aisha Rahman',
+//     hostAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
+//     participantsCount: 12,
+//     maxParticipants: 20,
+//     isJoined: false
+//   }
+// ];
+
 export const CommunityDetailsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'info' | 'present' | 'interested'>('info');
+  const [activeTab, setActiveTab] = useState<'info' | 'activity' | 'present' | 'interested'>('info');
   const [isJoined, setIsJoined] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
 
-  const [communities, setCommunities] = useState<CommunityItem[]>([])
+  const [communities, setCommunities] = useState<CommunityItem[]>([]);
+  const [activitiesList, setActivitiesList] = useState<ActivityItem[]>([]);
+  const [isCreateActivityOpen, setIsCreateActivityOpen] = useState(false);
+
+  // Form state for creating an activity
+  const [newTitle, setNewTitle] = useState('');
+  const [newCategory, setNewCategory] = useState('Match');
+  const [newImage, setNewImage] = useState('');
+  const [newDateStr, setNewDateStr] = useState('');
+  const [newTimeStr, setNewTimeStr] = useState('');
+  const [newLocation, setNewLocation] = useState('');
+  const [newMaxParticipants, setNewMaxParticipants] = useState('10');
+  const [newDescription, setNewDescription] = useState('');
 
   useEffect(() => {
-    console.log("communities: ", communities)
-    fetchCommunities()
-  }, [])
+    fetchCommunities();
+    fetchActivities();
+  }, []);
 
-  // GET - fetch all
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    if (isCreateActivityOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isCreateActivityOpen]);
+
   const fetchCommunities = async () => {
-    console.log("fetched communities...")
     const { data, error } = await supabase
       .from('community_list')
-      .select('*')
-    console.log("data success ==", data);
-    console.log("error ==", error);
+      .select('*');
     if (error) {
-      console.error(error)
+      console.error(error);
     } else if (data) {
       const mapped = data.map((c) => ({
         id: c.id,
@@ -134,12 +223,40 @@ export const CommunityDetailsPage: React.FC = () => {
         distance: c.distance,
         host: typeof c.host === 'string' ? JSON.parse(c.host) : c.host,
         attendees: typeof c.attendees === 'string' ? JSON.parse(c.attendees) : (c.attendees || []),
-      }))
-      setCommunities(mapped)
+      }));
+      setCommunities(mapped);
     }
-  }
+  };
 
-  // Find community details
+  const fetchActivities = async () => {
+    const { data, error } = await supabase.from('activity').select('*');
+
+    if (error) {
+      console.error('Error fetching activities from Supabase:', error);
+      return;
+    }
+
+    if (data) {
+      const mapped: ActivityItem[] = data.map((a) => ({
+        id: a.id,
+        title: a.title,
+        category: a.category,
+        image: a.image,
+        dateStr: a.date_str || a.dateStr || '',
+        timeStr: a.time_str || a.timeStr || '',
+        location: a.location,
+        description: a.description,
+        hostName: a.host_name || a.hostName || 'Sophia Chen',
+        hostAvatar: a.host_avatar || a.hostAvatar || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80',
+        participantsCount: a.participants_count || a.participantsCount || 1,
+        maxParticipants: a.max_participants || a.maxParticipants || 10,
+        isJoined: a.is_joined !== undefined ? a.is_joined : true,
+      }));
+
+      setActivitiesList(mapped);
+    }
+  };
+
   const community = communities.find(c => c.id === id);
 
   if (!community) {
@@ -154,14 +271,11 @@ export const CommunityDetailsPage: React.FC = () => {
     );
   }
 
-  // Get dynamic config based on theme, fallback if needed
   const config = THEME_MAPS[community.theme] || THEME_MAPS.drinks;
 
-  // Extract coordinates from config.mapImage URL
   const getCoordinates = (mapImageUrl: string) => {
     const match = mapImageUrl.match(/static\/([\d.-]+),([\d.-]+)/);
     if (match) {
-      // Mapbox uses longitude,latitude -> Google Maps uses latitude,longitude
       const lng = match[1];
       const lat = match[2];
       return { lat, lng };
@@ -183,25 +297,133 @@ export const CommunityDetailsPage: React.FC = () => {
     alert(`Link to "${community.name}" copied to clipboard!`);
   };
 
+  const handleCreateActivity = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTitle.trim()) return;
+
+    const categoryDefaultImages: Record<string, string> = {
+      Match: 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=800&auto=format&fit=crop&q=60',
+      Practice: 'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=800&auto=format&fit=crop&q=60',
+      Social: 'https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=800&auto=format&fit=crop&q=60',
+      Workshop: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&auto=format&fit=crop&q=60',
+      Meetup: 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800&auto=format&fit=crop&q=60'
+    };
+
+    // Calculate auto-incremented ID in act_X format (e.g. act_1, act_2, act_3...)
+    let maxIdNum = 0;
+    (activitiesList || []).forEach((a) => {
+      if (a.id) {
+        const match = String(a.id).match(/^act_(\d+)$/i);
+        if (match) {
+          const num = parseInt(match[1], 10);
+          if (!isNaN(num) && num > maxIdNum) {
+            maxIdNum = num;
+          }
+        }
+      }
+    });
+    const generatedId = `act_${maxIdNum + 1}`;
+
+    const activityPayload = {
+      id: generatedId,
+      title: newTitle.trim(),
+      category: newCategory,
+      image: newImage.trim() || categoryDefaultImages[newCategory] || categoryDefaultImages.Match,
+      date_str: newDateStr.trim() || 'Tomorrow',
+      time_str: newTimeStr.trim() || '6:00 PM',
+      location: newLocation.trim() || (community ? community.name : 'Location TBD'),
+      description: newDescription.trim() || 'Activity organized by community members.',
+      host_name: 'Sophia Chen',
+      host_avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80',
+      participants_count: 1,
+      max_participants: parseInt(newMaxParticipants) || 10,
+      is_joined: true
+    };
+
+    try {
+      const { data, error } = await supabase
+        .from('activity')
+        .insert(activityPayload)
+      // .select();
+
+      if (error) {
+        console.error('Error inserting activity into Supabase:', error);
+        // Fallback local update if Supabase fails
+        const fallbackActivity: ActivityItem = {
+          id: `act_${Date.now()}`,
+          title: activityPayload.title,
+          category: activityPayload.category,
+          image: activityPayload.image,
+          dateStr: activityPayload.date_str,
+          timeStr: activityPayload.time_str,
+          location: activityPayload.location,
+          description: activityPayload.description,
+          hostName: activityPayload.host_name,
+          hostAvatar: activityPayload.host_avatar,
+          participantsCount: activityPayload.participants_count,
+          maxParticipants: activityPayload.max_participants,
+          isJoined: activityPayload.is_joined
+        };
+        setActivitiesList(prev => [fallbackActivity, ...(prev || [])]);
+      } else {
+        console.log('Successfully created activity in Supabase:', data);
+        await fetchActivities();
+      }
+    } catch (err) {
+      console.error('Unexpected error creating activity:', err);
+    }
+
+    setIsCreateActivityOpen(false);
+    setNewTitle('');
+    setNewImage('');
+    setNewDateStr('');
+    setNewTimeStr('');
+    setNewLocation('');
+    setNewDescription('');
+    setActiveTab('activity');
+  };
+
+  const handleToggleJoinActivity = (actId: string) => {
+    setActivitiesList(prev =>
+      prev.map(act => {
+        if (act.id === actId) {
+          const nextJoined = !act.isJoined;
+          return {
+            ...act,
+            isJoined: nextJoined,
+            participantsCount: nextJoined ? act.participantsCount + 1 : Math.max(1, act.participantsCount - 1)
+          };
+        }
+        return act;
+      })
+    );
+  };
+
   return (
     <div className="user-profile-page community-profile-page">
       <div className="explore-header-row">
         <div className="explore-title-block">
           <div>
             <h1>Community Details</h1>
-            {/* <p className="explore-subtitle">Discover people and plans near you</p> */}
           </div>
         </div>
 
-        {/* Action Button: Create Community */}
-        <button
-          className="btn-back-arrow"
-          onClick={() => navigate(-1)}
-          title="Go Back"
-        >
-          <ArrowLeft size={18} />
-          {/* <span>Back</span> */}
-        </button>
+        <div className="createActivity">
+          <button
+            className="btn-create-activity"
+            onClick={() => setIsCreateActivityOpen(true)}
+          >
+            <Plus size={16} />
+            <span>Activity</span>
+          </button>
+          {/* <button
+            className="btn-back-arrow"
+            onClick={() => navigate(-1)}
+            title="Go Back"
+          >
+            <ArrowLeft size={18} />
+          </button> */}
+        </div>
       </div>
 
       {/* Cover Banner */}
@@ -210,7 +432,9 @@ export const CommunityDetailsPage: React.FC = () => {
         style={{ backgroundImage: `url(${community.image})` }}
       >
         <div className="cover-overlay" />
-
+        <button className="cover-back-btn" onClick={() => navigate(-1)} title="Go Back" aria-label="Go Back">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="lucide lucide-arrow-left" aria-hidden="true"><path d="m12 19-7-7 7-7"></path><path d="M19 12H5"></path></svg>
+        </button>
       </div>
 
       {/* Profile Header Details */}
@@ -227,17 +451,6 @@ export const CommunityDetailsPage: React.FC = () => {
               <h1>{community.name}</h1>
             </div>
             <span className="profile-role-title">{config.type} Activity</span>
-
-            {/* <div className="profile-meta-row">
-              <div className="meta-item">
-                <MapPin size={14} />
-                <span>{community.distance}</span>
-              </div>
-              <div className="meta-item">
-                <Users size={14} />
-                <span>Hosted by {community.host.name}</span>
-              </div>
-            </div> */}
           </div>
 
           {/* Action Row */}
@@ -275,7 +488,7 @@ export const CommunityDetailsPage: React.FC = () => {
         </div>
 
         {/* Counts indicators */}
-        <div className="profile-counts-strip">
+        {/* <div className="profile-counts-strip">
           <div className="count-unit">
             <span className="count-val">{community.attendees.length}</span>
             <span className="count-lbl">Pioneers Joined</span>
@@ -290,7 +503,7 @@ export const CommunityDetailsPage: React.FC = () => {
             <span className="count-val">{config.ageText.split(' ')[1] || config.ageText}</span>
             <span className="count-lbl">Age Group</span>
           </div>
-        </div>
+        </div> */}
       </section>
 
       {/* Main Profile Tabs */}
@@ -300,13 +513,19 @@ export const CommunityDetailsPage: React.FC = () => {
             className={`tab-anchor ${activeTab === 'info' ? 'active' : ''}`}
             onClick={() => setActiveTab('info')}
           >
-            About Activity
+            Info
+          </button>
+          <button
+            className={`tab-anchor ${activeTab === 'activity' ? 'active' : ''}`}
+            onClick={() => setActiveTab('activity')}
+          >
+            Activity ({activitiesList.length})
           </button>
           <button
             className={`tab-anchor ${activeTab === 'present' ? 'active' : ''}`}
             onClick={() => setActiveTab('present')}
           >
-            Present ({community.attendees.length + 1})
+            Joined ({community.attendees.length + 1})
           </button>
           <button
             className={`tab-anchor ${activeTab === 'interested' ? 'active' : ''}`}
@@ -338,34 +557,6 @@ export const CommunityDetailsPage: React.FC = () => {
                   </div>
                   <ChevronRight size={16} className="item-arrow-right" />
                 </div>
-
-                {/* Present / Participants */}
-                {/* <div className="about-item-row" onClick={() => setActiveTab('present')}>
-                  <div className="about-item-icon-wrapper stack-wrapper">
-                    <div className="avatar-overlap-circle">
-                      {community.attendees.slice(0, 2).map((a, i) => (
-                        <img key={i} src={a.avatar} alt={a.name} className="overlap-img" />
-                      ))}
-                    </div>
-                  </div>
-                  <div className="about-item-info">
-                    <span className="item-label">Present</span>
-                    <span className="item-value">View participants</span>
-                  </div>
-                  <ChevronRight size={16} className="item-arrow-right" />
-                </div> */}
-
-                {/* Community Group */}
-                {/* <div className="about-item-row" onClick={() => navigate('/explore-communities')}>
-                  <div className="about-item-icon-wrapper standard-icon-bg">
-                    <Users size={18} className="item-svg-icon" />
-                  </div>
-                  <div className="about-item-info">
-                    <span className="item-value">{config.communityName}</span>
-                    <span className="item-label-sub">Part of a community</span>
-                  </div>
-                  <ChevronRight size={16} className="item-arrow-right" />
-                </div> */}
 
                 {/* Time details */}
                 <div className="about-item-row">
@@ -420,7 +611,83 @@ export const CommunityDetailsPage: React.FC = () => {
                   </button>
                 </div>
               </div>
+            </div>
+          ) : activeTab === 'activity' ? (
+            <div className="about-tab-content community-info-tab">
+              {/* <div className="activity-tab-header">
+                <div>
+                  <h4 className="activity-section-title">Community Activities ({activitiesList.length})</h4>
+                  <p className="activity-section-subtitle">
+                    Upcoming games, practice sessions, and group hangouts
+                  </p>
+                </div>
+              </div> */}
 
+              {/* Activities Grid - Styled like Community Cards */}
+              <div className="community-card-style-grid">
+                {activitiesList.map((act) => {
+                  const bgImg = act.image || 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=800&auto=format&fit=crop&q=60';
+                  return (
+                    <div key={act.id} className="activity-community-card">
+                      {/* Card Cover Image */}
+                      <div className="card-cover-container">
+                        <img src={bgImg} alt={act.title} className="card-cover-image" />
+
+                        {/* Host Overlay Badge */}
+                        <div className="card-host">
+                          <img src={act.hostAvatar} alt={act.hostName} className="host-avatar" />
+                          <span className="host-name">{act.hostName}</span>
+                        </div>
+                      </div>
+
+                      {/* Card Details */}
+                      <div className="card-details">
+                        <h3 className="community-title">{act.title}</h3>
+
+                        <div className="community-meta">
+                          <span>{act.dateStr} at {act.timeStr}</span>
+                          {/* <span className="meta-dot">•</span> */}
+                          <span>{act.location}</span>
+                        </div>
+
+                        <p className="activity-card-desc">{act.description}</p>
+                      </div>
+
+                      {/* Card Footer Row */}
+                      <div className="activity-card-footer-row">
+                        {/* Status/Category Badge */}
+                        <div className={`card-status category-pill-${act.category.toLowerCase()}`}>
+                          <span className="badge-pulse-dot" />
+                          <span>
+                            {act.category === 'Match' && '⚽ '}
+                            {act.category === 'Practice' && '🎯 '}
+                            {act.category === 'Workshop' && '💡 '}
+                            {act.category === 'Social' && '🍹 '}
+                            {act.category.toUpperCase()}
+                          </span>
+                        </div>
+
+                        <button
+                          className={`btn-rsvp-activity ${act.isJoined ? 'joined' : ''}`}
+                          onClick={() => handleToggleJoinActivity(act.id)}
+                        >
+                          {act.isJoined ? (
+                            <>
+                              <Check size={14} />
+                              <span>RSVP'd</span>
+                            </>
+                          ) : (
+                            <>
+                              <UserPlus size={14} />
+                              <span>Join</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           ) : activeTab === 'present' ? (
             <div className="present-tab-content">
@@ -463,6 +730,151 @@ export const CommunityDetailsPage: React.FC = () => {
         </div>
       </section>
 
+      {/* CREATE ACTIVITY POPUP MODAL (Mounted via ReactDOM.createPortal to document.body, matching Create Community Modal 100%) */}
+      {isCreateActivityOpen && ReactDOM.createPortal(
+        <div className="modal-backdrop-overlay" onClick={() => setIsCreateActivityOpen(false)}>
+          <div className="create-community-modal glass-panel" onClick={(e) => e.stopPropagation()}>
+
+            {/* Modal Header Bar */}
+            <div className="modal-header-bar">
+              <div className="modal-header-title">
+                <Sparkles size={20} className="modal-header-icon" />
+                <div>
+                  <h3>Create New Activity</h3>
+                  <p>Enter details to start a game, practice, or group hangout</p>
+                </div>
+              </div>
+              <button
+                className="modal-close-btn"
+                onClick={() => setIsCreateActivityOpen(false)}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Modal Form Body */}
+            <form onSubmit={handleCreateActivity} className="modal-form-body">
+              <div className="form-group">
+                <label className="form-label">Activity Title *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. 3v3 Friendly Football Match"
+                  value={newTitle}
+                  onChange={(e) => setNewTitle(e.target.value)}
+                  className="form-input"
+                />
+              </div>
+
+              <div className="form-group-row">
+                <div className="form-group">
+                  <label className="form-label">Category</label>
+                  <select
+                    value={newCategory}
+                    onChange={(e) => setNewCategory(e.target.value)}
+                    className="form-select"
+                  >
+                    <option value="Match">⚽ Match</option>
+                    <option value="Practice">🎯 Practice</option>
+                    <option value="Workshop">💡 Workshop</option>
+                    <option value="Social">🍹 Social</option>
+                    <option value="Meetup">✈️ Meetup</option>
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Max Participants</label>
+                  <input
+                    type="number"
+                    min="2"
+                    max="100"
+                    placeholder="e.g. 10"
+                    value={newMaxParticipants}
+                    onChange={(e) => setNewMaxParticipants(e.target.value)}
+                    className="form-input"
+                  />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Cover Image URL (Optional)</label>
+                <input
+                  type="url"
+                  placeholder="https://images.unsplash.com/..."
+                  value={newImage}
+                  onChange={(e) => setNewImage(e.target.value)}
+                  className="form-input"
+                />
+              </div>
+
+              <div className="form-group-row">
+                <div className="form-group">
+                  <label className="form-label">Date</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Tomorrow or July 28"
+                    value={newDateStr}
+                    onChange={(e) => setNewDateStr(e.target.value)}
+                    className="form-input"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Time</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 6:00 PM"
+                    value={newTimeStr}
+                    onChange={(e) => setNewTimeStr(e.target.value)}
+                    className="form-input"
+                  />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Location / Venue</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Koramangala Turf Ground Pitch 1"
+                  value={newLocation}
+                  onChange={(e) => setNewLocation(e.target.value)}
+                  className="form-input"
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Description</label>
+                <textarea
+                  rows={3}
+                  placeholder="Brief details about rules, equipment required, or plan..."
+                  value={newDescription}
+                  onChange={(e) => setNewDescription(e.target.value)}
+                  className="form-input"
+                />
+              </div>
+
+              {/* Modal Footer Actions */}
+              <div className="modal-footer-actions">
+                <button
+                  type="button"
+                  className="btn-create-cancel"
+                  onClick={() => setIsCreateActivityOpen(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={!newTitle.trim()}
+                  className="btn-create-submit"
+                >
+                  Create Activity
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 };
