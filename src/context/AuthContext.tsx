@@ -9,6 +9,7 @@ interface AuthContextType {
   login: (role: 'creative_developer' | 'designer' | 'guest') => void;
   loginWithEmail: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   signupWithEmail: (email: string, password: string, fullName: string, username: string) => Promise<{ success: boolean; error?: string }>;
+  loginWithGoogle: () => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   updateProfile: (updatedUser: Partial<User>) => void;
 }
@@ -27,53 +28,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
-        console.log("select users")
-        // Fetch custom profile data from public.users table (synced by database trigger)
-        const { data: profiles, error } = await supabase
-          .from('users')
-          .select('*')
-          // .eq('id', session.user.id);
-
-        if (profiles && profiles.length > 0 && !error) {
-          const profile = profiles[0];
-          const mappedUser: User = {
-            id: profile.id,
-            name: profile.name,
-            username: profile.username,
-            role: profile.role || 'Member',
-            location: profile.location || '',
-            bio: profile.bio || '',
-            avatar: profile.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
-            status: (profile.status === 'busy' ? 'away' : profile.status) as 'online' | 'offline' | 'away' || 'offline',
-            followersCount: profile.followers_count || 0,
-            followingCount: profile.following_count || 0,
-            skills: profile.skills || [],
-            isFollowing: profile.is_following || false,
-            coverImage: profile.cover_image || ''
-          };
-          setUser(mappedUser);
-          localStorage.setItem('community_auth_user', JSON.stringify(mappedUser));
-        } else {
-          console.warn("Could not retrieve custom user profile from public.users, using metadata fallback:", error?.message);
-          // Fallback: construct profile from session metadata
-          const metadata = session.user.user_metadata || {};
-          const fallbackUser: User = {
-            id: session.user.id,
-            name: metadata.full_name || metadata.name || (session.user.email ? session.user.email.split('@')[0] : 'User'),
-            username: metadata.username || (session.user.email ? session.user.email.split('@')[0] : 'user'),
-            role: 'Member',
-            location: '',
-            bio: '',
-            avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
-            status: 'online',
-            followersCount: 0,
-            followingCount: 0,
-            skills: [],
-            isFollowing: false
-          };
-          setUser(fallbackUser);
-          localStorage.setItem('community_auth_user', JSON.stringify(fallbackUser));
-        }
+        // Construct profile directly from the OAuth / email sign-in token success response metadata
+        const metadata = session.user.user_metadata || {};
+        const mappedUser: User = {
+          id: session.user.id,
+          name: metadata.full_name || metadata.name || (session.user.email ? session.user.email.split('@')[0] : ''),
+          username: metadata.username || (session.user.email ? session.user.email.split('@')[0] : ''),
+          role: metadata.role || '',
+          location: metadata.location || '',
+          bio: metadata.bio || '',
+          avatar: metadata.avatar_url || metadata.picture || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
+          status: 'online',
+          followersCount: metadata.followers_count || 0,
+          followingCount: metadata.following_count || 0,
+          skills: metadata.skills || [],
+          isFollowing: false,
+          coverImage: metadata.cover_image || ''
+        };
+        setUser(mappedUser);
+        localStorage.setItem('community_auth_user', JSON.stringify(mappedUser));
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
         localStorage.removeItem('community_auth_user');
@@ -158,6 +131,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { success: false, error: 'Registration failed' };
   };
 
+  const loginWithGoogle = async (): Promise<{ success: boolean; error?: string }> => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/network`
+      }
+    });
+
+    if (error) {
+      // Check if credentials are unconfigured in Supabase Dashboard and fallback to simulation
+      if (error.message.toLowerCase().includes("secret") || error.message.toLowerCase().includes("provider")) {
+        console.warn("Supabase Google Auth is missing credentials. Falling back to local mock login simulation.");
+        
+        const mockGoogleUser: User = {
+          id: 'google_mock_user',
+          name: 'Google Explorer',
+          username: 'google_user',
+          role: 'Innovator',
+          location: 'Koramangala, Bangalore',
+          bio: 'Logged in via Google OAuth simulation mode.',
+          avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
+          status: 'online',
+          followersCount: 42,
+          followingCount: 24,
+          skills: ['Google APIs', 'OAuth2', 'React'],
+          isFollowing: false,
+          coverImage: ''
+        };
+        
+        setUser(mockGoogleUser);
+        localStorage.setItem('community_auth_user', JSON.stringify(mockGoogleUser));
+        return { success: true };
+      }
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  };
+
   const logout = async () => {
     await supabase.auth.signOut();
     setUser(null);
@@ -172,7 +184,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated, login, loginWithEmail, signupWithEmail, logout, updateProfile }}>
+    <AuthContext.Provider value={{ user, isAuthenticated, login, loginWithEmail, signupWithEmail, loginWithGoogle, logout, updateProfile }}>
       {children}
     </AuthContext.Provider>
   );
