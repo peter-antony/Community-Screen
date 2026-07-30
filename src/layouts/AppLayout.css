@@ -272,6 +272,12 @@
   background: var(--bg-secondary);
 }
 
+.header-breadcrumbs {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
 .header-breadcrumbs h2 {
   font-size: 1.15rem;
   font-weight: 700;

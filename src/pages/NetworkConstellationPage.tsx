@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCommunication } from '../context/CommunicationContext';
@@ -22,11 +22,1606 @@ import {
   Map,
   MessageCircleMore,
   Menu,
-  Users
+  Users,
+  Search,
+  Navigation2,
+  Star,
+  Plus,
+  Minus,
+  Clock,
+  MapPin,
+  ChevronDown,
+  Calendar,
+  Send,
+  Mail,
+  CheckCircle2
 } from 'lucide-react';
 import type { User, CommunityItem } from '../types';
 import './NetworkConstellationPage.css';
 import { supabase } from '../supabaseClient';
+
+export interface EventCategoryOption {
+  id: string;
+  label: string;
+  emoji: string;
+  categoryKey: string;
+  image: string;
+}
+
+const EVENT_CATEGORY_OPTIONS: EventCategoryOption[] = [
+  { id: 'sport', label: 'sport', emoji: '🏃', categoryKey: 'Match', image: 'https://images.unsplash.com/photo-1517649763962-0c623266ddc0?w=800&auto=format&fit=crop&q=60' },
+  { id: 'night_out', label: 'night out', emoji: '🕺', categoryKey: 'Social', image: 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=800&auto=format&fit=crop&q=60' },
+  { id: 'picnic', label: 'picnic', emoji: '🧺', categoryKey: 'Social', image: 'https://images.unsplash.com/photo-1526401485004-46910ecc8e51?w=800&auto=format&fit=crop&q=60' },
+  { id: 'event', label: 'event', emoji: '🎪', categoryKey: 'Meetup', image: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=800&auto=format&fit=crop&q=60' },
+  { id: 'fitness', label: 'fitness', emoji: '🏋️', categoryKey: 'Practice', image: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800&auto=format&fit=crop&q=60' },
+  { id: 'house_party', label: 'house party', emoji: '🏡', categoryKey: 'Social', image: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&auto=format&fit=crop&q=60' },
+  { id: 'volleyball', label: 'beach volleyball', emoji: '🏐', categoryKey: 'Match', image: 'https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?w=800&auto=format&fit=crop&q=60' },
+  { id: 'swimming', label: 'swimming', emoji: '🏊', categoryKey: 'Practice', image: 'https://images.unsplash.com/photo-1530549387789-4c1017266635?w=800&auto=format&fit=crop&q=60' },
+  { id: 'climbing', label: 'climbing', emoji: '🧗', categoryKey: 'Practice', image: 'https://images.unsplash.com/photo-1522163182402-834f871fd851?w=800&auto=format&fit=crop&q=60' },
+  { id: 'skating', label: 'skating', emoji: '🛼', categoryKey: 'Practice', image: 'https://images.unsplash.com/photo-1547051981-197857e2b75e?w=800&auto=format&fit=crop&q=60' },
+  { id: 'dancing', label: 'dancing', emoji: '💃', categoryKey: 'Social', image: 'https://images.unsplash.com/photo-1504609773096-104ff2c73ba4?w=800&auto=format&fit=crop&q=60' },
+  { id: 'campfire', label: 'campfire', emoji: '🪵', categoryKey: 'Meetup', image: 'https://images.unsplash.com/photo-1470246973918-29a93221c455?w=800&auto=format&fit=crop&q=60' },
+  { id: 'flex_working', label: 'flex working', emoji: '💻', categoryKey: 'Workshop', image: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=800&auto=format&fit=crop&q=60' },
+  { id: 'walking', label: 'walking', emoji: '🥾', categoryKey: 'Meetup', image: 'https://images.unsplash.com/photo-1551632811-561732d1e306?w=800&auto=format&fit=crop&q=60' },
+  { id: 'adventure', label: 'adventure', emoji: '🚀', categoryKey: 'Meetup', image: 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800&auto=format&fit=crop&q=60' },
+  { id: 'creative', label: 'creative', emoji: '🎨', categoryKey: 'Workshop', image: 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=800&auto=format&fit=crop&q=60' },
+  { id: 'dinner_party', label: 'dinner party', emoji: '🍽️', categoryKey: 'Social', image: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800&auto=format&fit=crop&q=60' },
+  { id: 'drinks', label: 'drinks', emoji: '🍻', categoryKey: 'Social', image: 'https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=800&auto=format&fit=crop&q=60' },
+  { id: 'games', label: 'games', emoji: '🎲', categoryKey: 'Social', image: 'https://images.unsplash.com/photo-1610890716171-6b1bb98ffd09?w=800&auto=format&fit=crop&q=60' },
+  { id: 'padel', label: 'padel', emoji: '🎾', categoryKey: 'Match', image: 'https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800&auto=format&fit=crop&q=60' },
+  { id: 'coffee', label: 'coffee', emoji: '☕', categoryKey: 'Social', image: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=800&auto=format&fit=crop&q=60' },
+  { id: 'drinks_park', label: 'drinks in the park', emoji: '🍹', categoryKey: 'Social', image: 'https://images.unsplash.com/photo-1536935338788-846bb9981813?w=800&auto=format&fit=crop&q=60' },
+];
+
+// ─────────────────────────────────────────────
+// CONSTANTS & MERCATOR MATH
+// ─────────────────────────────────────────────
+const MAP_TILE_SIZE = 256;
+const MAP_BANGALORE = { lat: 12.9716, lng: 77.5946 };
+const MAP_MIN_ZOOM = 10;
+const MAP_MAX_ZOOM = 18;
+const MAP_DEFAULT_ZOOM = 13;
+
+const UI_COMMUNITY_COLOR_PALETTES = [
+  { color: '#10b981', bgColor: '#d1fae5', glowColor: 'rgba(16, 185, 129, 0.55)' },
+  { color: '#3b82f6', bgColor: '#dbeafe', glowColor: 'rgba(59, 130, 246, 0.55)' },
+  { color: '#f59e0b', bgColor: '#fef3c7', glowColor: 'rgba(245, 158, 11, 0.55)' },
+  { color: '#ef4444', bgColor: '#fee2e2', glowColor: 'rgba(239, 68, 68, 0.55)' },
+  { color: '#8b5cf6', bgColor: '#ede9fe', glowColor: 'rgba(139, 92, 246, 0.55)' },
+  { color: '#06b6d4', bgColor: '#cffafe', glowColor: 'rgba(6, 182, 212, 0.55)' },
+  { color: '#f97316', bgColor: '#ffedd5', glowColor: 'rgba(249, 115, 22, 0.55)' },
+  { color: '#f43f5e', bgColor: '#ffe4e6', glowColor: 'rgba(244, 63, 94, 0.55)' },
+  { color: '#84cc16', bgColor: '#ecfccb', glowColor: 'rgba(132, 204, 22, 0.55)' },
+  { color: '#ec4899', bgColor: '#fce7f3', glowColor: 'rgba(236, 72, 153, 0.55)' },
+];
+
+interface LocationOption {
+  name: string;
+  lat: number;
+  lng: number;
+  area: string;
+}
+
+const BANGALORE_LOCATIONS: LocationOption[] = [
+  { name: 'JP Nagar 3rd Phase, Bengaluru', lat: 12.9105, lng: 77.5958, area: 'South Bangalore' },
+  { name: 'JP Nagar 1st Phase, Bengaluru', lat: 12.9166, lng: 77.5855, area: 'South Bangalore' },
+  { name: 'JP Nagar 6th Phase, Bengaluru', lat: 12.9056, lng: 77.5812, area: 'South Bangalore' },
+  { name: 'JP Nagar 2nd Phase, Bengaluru', lat: 12.9140, lng: 77.5900, area: 'South Bangalore' },
+  { name: 'Koramangala 4th Block, Bengaluru', lat: 12.9348, lng: 77.6254, area: 'South-East Bangalore' },
+  { name: 'Koramangala 5th Block, Bengaluru', lat: 12.9352, lng: 77.6245, area: 'South-East Bangalore' },
+  { name: 'Indiranagar 100ft Road, Bengaluru', lat: 12.9784, lng: 77.6408, area: 'East Bangalore' },
+  { name: 'Indiranagar 12th Main, Bengaluru', lat: 12.9723, lng: 77.6421, area: 'East Bangalore' },
+  { name: 'Cubbon Park, Bengaluru', lat: 12.9763, lng: 77.5929, area: 'Central Bangalore' },
+  { name: 'MG Road, Bengaluru', lat: 12.9756, lng: 77.6015, area: 'Central Bangalore' },
+  { name: 'HSR Layout Sector 1, Bengaluru', lat: 12.9116, lng: 77.6474, area: 'South-East Bangalore' },
+  { name: 'HSR Layout Sector 3, Bengaluru', lat: 12.9142, lng: 77.6385, area: 'South-East Bangalore' },
+  { name: 'Jayanagar 4th Block, Bengaluru', lat: 12.9250, lng: 77.5938, area: 'South Bangalore' },
+  { name: 'Ulsoor Lake, Bengaluru', lat: 12.9831, lng: 77.6210, area: 'East Bangalore' },
+  { name: 'Lalbagh Botanical Garden, Bengaluru', lat: 12.9507, lng: 77.5848, area: 'South Bangalore' },
+  { name: 'Bannerghatta Road, Bengaluru', lat: 12.8638, lng: 77.5765, area: 'South Bangalore' },
+  { name: 'Whitefield ITPL, Bengaluru', lat: 12.9866, lng: 77.7381, area: 'East Bangalore' },
+  { name: 'BTM Layout 2nd Stage, Bengaluru', lat: 12.9166, lng: 77.6101, area: 'South Bangalore' },
+  { name: 'Marathahalli, Bengaluru', lat: 12.9592, lng: 77.6974, area: 'East Bangalore' },
+  { name: 'Hebbal, Bengaluru', lat: 13.0358, lng: 77.5970, area: 'North Bangalore' },
+  { name: 'Electronic City Phase 1, Bengaluru', lat: 12.8452, lng: 77.6602, area: 'South Bangalore' },
+  { name: 'Malleshwaram, Bengaluru', lat: 12.9984, lng: 77.5709, area: 'North-West Bangalore' },
+  { name: 'Rajajinagar, Bengaluru', lat: 12.9880, lng: 77.5540, area: 'West Bangalore' },
+  { name: 'Bellandur, Bengaluru', lat: 12.9279, lng: 77.6806, area: 'East Bangalore' },
+];
+
+interface CommunityAttendee {
+  name: string;
+  avatar: string;
+  role?: string;
+}
+
+interface MapCommunity {
+  id: string; name: string;
+  lat: number; lng: number;
+  locationName?: string;
+  category: string; emoji: string; color: string; bgColor: string;
+  members: number; schedule: string; distance: string;
+  image: string; hostName: string; hostAvatar: string;
+  description: string; tags: string[];
+  glowColor: string;
+  attendees?: CommunityAttendee[];
+}
+
+interface MapTile {
+  x: number; y: number; px: number; py: number; key: string;
+}
+
+function mapLng2frac(lng: number, z: number): number {
+  return ((lng + 180) / 360) * Math.pow(2, z);
+}
+function mapLat2frac(lat: number, z: number): number {
+  const r = (lat * Math.PI) / 180;
+  return ((1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2) * Math.pow(2, z);
+}
+function mapFracToLng(fracX: number, z: number): number {
+  return (fracX / Math.pow(2, z)) * 360 - 180;
+}
+function mapFracToLat(fracY: number, z: number): number {
+  const n = Math.PI - (2 * Math.PI * fracY) / Math.pow(2, z);
+  return (180 / Math.PI) * Math.atan(0.5 * (Math.exp(n) - Math.exp(-n)));
+}
+
+function mapComputeTiles(
+  cLat: number, cLng: number,
+  vpW: number, vpH: number,
+  panX: number, panY: number,
+  zoom: number
+): MapTile[] {
+  const cx = mapLng2frac(cLng, zoom) - panX / MAP_TILE_SIZE;
+  const cy = mapLat2frac(cLat, zoom) - panY / MAP_TILE_SIZE;
+  const hx = Math.ceil(vpW / 2 / MAP_TILE_SIZE) + 1;
+  const hy = Math.ceil(vpH / 2 / MAP_TILE_SIZE) + 1;
+  const n = Math.pow(2, zoom);
+  const tiles: MapTile[] = [];
+  for (let dy = -hy; dy <= hy; dy++) {
+    for (let dx = -hx; dx <= hx; dx++) {
+      const tx = Math.floor(cx) + dx;
+      const ty = Math.floor(cy) + dy;
+      if (tx < 0 || tx >= n || ty < 0 || ty >= n) continue;
+      tiles.push({
+        x: tx, y: ty,
+        px: vpW / 2 + (tx - cx) * MAP_TILE_SIZE,
+        py: vpH / 2 + (ty - cy) * MAP_TILE_SIZE,
+        key: `${zoom}-${tx}-${ty}`,
+      });
+    }
+  }
+  return tiles;
+}
+
+function mapToPixel(
+  lat: number, lng: number,
+  cLat: number, cLng: number,
+  vpW: number, vpH: number,
+  panX: number, panY: number,
+  zoom: number
+): { x: number; y: number } {
+  const cx = mapLng2frac(cLng, zoom) - panX / MAP_TILE_SIZE;
+  const cy = mapLat2frac(cLat, zoom) - panY / MAP_TILE_SIZE;
+  return {
+    x: vpW / 2 + (mapLng2frac(lng, zoom) - cx) * MAP_TILE_SIZE,
+    y: vpH / 2 + (mapLat2frac(lat, zoom) - cy) * MAP_TILE_SIZE,
+  };
+}
+
+const MAP_CATEGORIES = [
+  { id: 'all', label: 'All', emoji: '🗺️' },
+  { id: 'yoga', label: 'Yoga', emoji: '🧘' },
+  { id: 'tech', label: 'Tech', emoji: '💻' },
+  { id: 'social', label: 'Social', emoji: '🎉' },
+  { id: 'hiking', label: 'Hiking', emoji: '🥾' },
+  { id: 'books', label: 'Books', emoji: '📚' },
+  { id: 'walking', label: 'Walk', emoji: '🚶' },
+  { id: 'cycling', label: 'Cycling', emoji: '🚴' },
+  { id: 'drinks', label: 'Drinks', emoji: '🍹' },
+  { id: 'meditation', label: 'Meditate', emoji: '🪷' },
+  { id: 'art', label: 'Art', emoji: '🎨' },
+];
+
+interface NetworkMapProps {
+  communityGroups: MapCommunity[];
+  onRefreshCommunities?: () => Promise<void> | void;
+}
+
+// ─────────────────────────────────────────────
+// NETWORK MAP COMPONENT — Interactive Zoom & Pan Map
+// ─────────────────────────────────────────────
+const NetworkMap: React.FC<NetworkMapProps> = ({ communityGroups, onRefreshCommunities }) => {
+  const navigate = useNavigate();
+  const [selected, setSelected] = useState<MapCommunity | null>(null);
+  const [hovered, setHovered] = useState<string | null>(null);
+  const [category, setCategory] = useState('all');
+  const [search, setSearch] = useState('');
+  const [catMenuOpen, setCatMenuOpen] = useState(false);
+  const [membersModalCommunity, setMembersModalCommunity] = useState<MapCommunity | null>(null);
+  const [memberSearch, setMemberSearch] = useState('');
+  const [showAddMemberModal, setShowAddMemberModal] = useState(false);
+  const [addMemberCommunity, setAddMemberCommunity] = useState<MapCommunity | null>(null);
+  const [inviteContact, setInviteContact] = useState('');
+  const [inviteSuccess, setInviteSuccess] = useState(false);
+
+  const [showCreateCommunityModal, setShowCreateCommunityModal] = useState(false);
+  const [createForm, setCreateForm] = useState({
+    name: '',
+    category: 'tech',
+    emoji: '💻',
+    description: '',
+    schedule: '',
+    distance: '1.5 km',
+    image: '',
+    tags: '',
+    locationName: 'JP Nagar 3rd Phase, Bengaluru',
+    lat: 12.9105,
+    lng: 77.5958,
+  });
+  const [locationInput, setLocationInput] = useState('');
+  const [locationSuggestions, setLocationSuggestions] = useState<LocationOption[]>([]);
+  const [showLocationDropdown, setShowLocationDropdown] = useState(false);
+  const [selectedLocation, setSelectedLocation] = useState<LocationOption | null>(null);
+  const [createSuccess, setCreateSuccess] = useState(false);
+
+  // Create Event Modal states
+  const [showCreateEventModal, setShowCreateEventModal] = useState(false);
+  const [eventModalCommunity, setEventModalCommunity] = useState<MapCommunity | null>(null);
+  const [eventCategoryItem, setEventCategoryItem] = useState<EventCategoryOption>(EVENT_CATEGORY_OPTIONS[0]);
+  const [eventTitle, setEventTitle] = useState('');
+  const [eventImage, setEventImage] = useState('');
+  const [eventDateStr, setEventDateStr] = useState('');
+  const [eventTimeStr, setEventTimeStr] = useState('');
+  const [eventLocation, setEventLocation] = useState('');
+  const [eventDescription, setEventDescription] = useState('');
+  const [eventSuccess, setEventSuccess] = useState(false);
+
+  // Events List Modal states
+  const [eventsModalCommunity, setEventsModalCommunity] = useState<MapCommunity | null>(null);
+  const [eventSearch, setEventSearch] = useState('');
+  const [communityEventsList, setCommunityEventsList] = useState<any[]>([]);
+
+  const fetchEventsForCommunity = async (communityId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('events')
+        .select('*')
+        .eq('community_id', communityId);
+
+      if (!error && data && data.length > 0) {
+        setCommunityEventsList(data);
+      } else {
+        setCommunityEventsList([
+          {
+            id: `evt_mock_1`,
+            community_id: communityId,
+            title: `3v3 Community Tournament & Warmup`,
+            category: `sport`,
+            image: `https://images.unsplash.com/photo-1517649763962-0c623266ddc0?w=800&auto=format&fit=crop&q=60`,
+            date_str: `Tomorrow`,
+            time_str: `6:00 PM`,
+            location: `Community Turf Ground`,
+            description: `Quick 3v3 mini tournament with round-robin matches. Winner stays on court!`
+          },
+          {
+            id: `evt_mock_2`,
+            community_id: communityId,
+            title: `Weekly Meetup & Social Gathering`,
+            category: `night out`,
+            image: `https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=800&auto=format&fit=crop&q=60`,
+            date_str: `Saturday`,
+            time_str: `7:30 PM`,
+            location: `Central Social Cafe`,
+            description: `Relax with members, discuss upcoming plans, and enjoy weekend refreshments.`
+          }
+        ]);
+      }
+    } catch (err) {
+      console.error("Error fetching community events:", err);
+    }
+  };
+  const selectedCatObj = useMemo(() => MAP_CATEGORIES.find(c => c.id === category) || MAP_CATEGORIES[0], [category]);
+  const [mapCenter, setMapCenter] = useState(MAP_BANGALORE);
+  const [zoom, setZoom] = useState(MAP_DEFAULT_ZOOM);
+  const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
+  const [dragging, setDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const mapRef = useRef<HTMLDivElement>(null);
+  const [mapSize, setMapSize] = useState({ w: window.innerWidth, h: window.innerHeight });
+
+  useEffect(() => {
+    const el = mapRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setMapSize({ w: el.clientWidth, h: el.clientHeight }));
+    ro.observe(el);
+    setMapSize({ w: el.clientWidth, h: el.clientHeight });
+    return () => ro.disconnect();
+  }, []);
+
+  const filtered = useMemo(() =>
+    (communityGroups || []).filter(c => {
+      const matchCat = category === 'all' || c.category === category;
+      const matchQ = !search || c.name.toLowerCase().includes(search.toLowerCase());
+      return matchCat && matchQ;
+    }), [communityGroups, category, search]);
+
+  const tiles = useMemo(() =>
+    mapComputeTiles(mapCenter.lat, mapCenter.lng, mapSize.w, mapSize.h, panOffset.x, panOffset.y, zoom),
+    [mapCenter, mapSize, panOffset, zoom]);
+
+  const pins = useMemo(() =>
+    (communityGroups || []).map(c => ({
+      ...c,
+      ...mapToPixel(c.lat, c.lng, mapCenter.lat, mapCenter.lng, mapSize.w, mapSize.h, panOffset.x, panOffset.y, zoom)
+    })), [communityGroups, mapCenter, mapSize, panOffset, zoom]);
+
+  const userDot = useMemo(() =>
+    mapToPixel(MAP_BANGALORE.lat, MAP_BANGALORE.lng, mapCenter.lat, mapCenter.lng, mapSize.w, mapSize.h, panOffset.x, panOffset.y, zoom),
+    [mapCenter, mapSize, panOffset, zoom]);
+
+  // Drag pan handlers
+  const onMouseDown = useCallback((e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).closest('.nm-pin, .nm-popup, .nm-topbar, .nm-ctrl, .nm-cat-dropdown-container, .nm-search-box-container, .nm-top-left-controls, .nm-members-modal-backdrop, .nm-members-modal-card, .nm-add-member-modal-backdrop, .nm-add-member-modal-card, .create-community-btn, .nm-create-modal-backdrop, .nm-create-modal-card, .nm-location-dropdown, .nm-location-item, .nm-events-modal-backdrop, .nm-events-modal-card')) return;
+    e.preventDefault();
+    setDragging(true);
+    setDragStart({ x: e.clientX, y: e.clientY });
+  }, []);
+
+  const onMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!dragging) return;
+    setPanOffset({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
+  }, [dragging, dragStart]);
+
+  const onMouseUp = useCallback((e: React.MouseEvent) => {
+    if (!dragging) return;
+    setDragging(false);
+    const dx = e.clientX - dragStart.x;
+    const dy = e.clientY - dragStart.y;
+    const cx = mapLng2frac(mapCenter.lng, zoom) - dx / MAP_TILE_SIZE;
+    const cy = mapLat2frac(mapCenter.lat, zoom) - dy / MAP_TILE_SIZE;
+    setMapCenter({ lat: mapFracToLat(cy, zoom), lng: mapFracToLng(cx, zoom) });
+    setPanOffset({ x: 0, y: 0 });
+  }, [dragging, dragStart, mapCenter, zoom]);
+
+  // Touch pan handlers
+  const touchStart = useRef<{ x: number; y: number } | null>(null);
+  const onTouchStart = useCallback((e: React.TouchEvent) => {
+    if ((e.target as HTMLElement).closest('.nm-pin, .nm-popup, .nm-topbar, .nm-ctrl, .nm-cat-dropdown-container, .nm-search-box-container, .nm-top-left-controls, .nm-members-modal-backdrop, .nm-members-modal-card, .nm-add-member-modal-backdrop, .nm-add-member-modal-card, .create-community-btn, .nm-create-modal-backdrop, .nm-create-modal-card, .nm-location-dropdown, .nm-location-item, .nm-events-modal-backdrop, .nm-events-modal-card')) return;
+    touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    setDragStart({ x: e.touches[0].clientX, y: e.touches[0].clientY });
+    setDragging(true);
+  }, []);
+  const onTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!dragging) return;
+    setPanOffset({ x: e.touches[0].clientX - dragStart.x, y: e.touches[0].clientY - dragStart.y });
+  }, [dragging, dragStart]);
+  const onTouchEnd = useCallback(() => {
+    if (!dragging) return;
+    setDragging(false);
+    const dx = panOffset.x;
+    const dy = panOffset.y;
+    const cx = mapLng2frac(mapCenter.lng, zoom) - dx / MAP_TILE_SIZE;
+    const cy = mapLat2frac(mapCenter.lat, zoom) - dy / MAP_TILE_SIZE;
+    setMapCenter({ lat: mapFracToLat(cy, zoom), lng: mapFracToLng(cx, zoom) });
+    setPanOffset({ x: 0, y: 0 });
+  }, [dragging, panOffset, mapCenter, zoom]);
+
+  const recenter = useCallback(() => {
+    setMapCenter(MAP_BANGALORE);
+    setPanOffset({ x: 0, y: 0 });
+    setZoom(MAP_DEFAULT_ZOOM);
+  }, []);
+
+  const zoomIn = useCallback(() => setZoom(z => Math.min(z + 1, MAP_MAX_ZOOM)), []);
+  const zoomOut = useCallback(() => setZoom(z => Math.max(z - 1, MAP_MIN_ZOOM)), []);
+
+  const onWheel = useCallback((e: React.WheelEvent) => {
+    if ((e.target as HTMLElement).closest('.nm-cat-dropdown-container, .nm-popup, .nm-ctrl')) return;
+    e.preventDefault();
+    const delta = e.deltaY < 0 ? 1 : -1;
+    setZoom(z => Math.min(Math.max(z + delta, MAP_MIN_ZOOM), MAP_MAX_ZOOM));
+  }, []);
+
+  // Smart popup positioning
+  const getPopupPos = (pin: typeof pins[0]) => {
+    const pw = 292, ph = 420;
+    let left = pin.x + 36;
+    let top = pin.y - 80;
+    if (left + pw > mapSize.w - 16) left = pin.x - pw - 16;
+    if (top + ph > mapSize.h - 16) top = mapSize.h - ph - 16;
+    if (top < 80) top = 40;
+    if (left < 16) left = 16;
+    return { left, top };
+  };
+
+  const handleCreateCommunity = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!createForm.name.trim()) return;
+
+    let maxNum = 0;
+    communityGroups.forEach(g => {
+      const match = String(g.id).match(/^bg(\d+)$/i);
+      if (match) {
+        const num = parseInt(match[1], 10);
+        if (!isNaN(num) && num > maxNum) {
+          maxNum = num;
+        }
+      }
+    });
+    if (maxNum === 0) {
+      maxNum = communityGroups.length;
+    }
+    const newId = `bg${maxNum + 1}`;
+    const palette = UI_COMMUNITY_COLOR_PALETTES[communityGroups.length % UI_COMMUNITY_COLOR_PALETTES.length];
+
+    const targetLat = selectedLocation ? selectedLocation.lat : (createForm.lat || MAP_BANGALORE.lat);
+    const targetLng = selectedLocation ? selectedLocation.lng : (createForm.lng || MAP_BANGALORE.lng);
+    const targetLocName = selectedLocation ? selectedLocation.name : (locationInput.trim() || createForm.locationName || 'Bengaluru');
+
+    const tagsText = createForm.tags.trim() || 'Networking';
+    const tagsArray = tagsText.split(',').map(t => t.trim()).filter(Boolean);
+
+    const newObj: MapCommunity = {
+      id: newId,
+      name: createForm.name.trim(),
+      lat: targetLat,
+      lng: targetLng,
+      locationName: targetLocName,
+      category: createForm.category || 'tech',
+      emoji: createForm.emoji || '📌',
+      color: palette.color,
+      bgColor: palette.bgColor,
+      glowColor: palette.glowColor,
+      members: 1,
+      schedule: createForm.schedule || 'Weekly Meetings',
+      distance: createForm.distance || '1.2 km',
+      image: createForm.image || 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=320&q=85',
+      hostName: 'You',
+      hostAvatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=60&q=80',
+      description: createForm.description || 'Welcome to our new community!',
+      tags: tagsArray,
+      attendees: [
+        { name: 'You (Host)', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=60&q=80', role: 'Host' }
+      ],
+    };
+
+    // Persist to Supabase community_map table if available
+    try {
+      await supabase.from('community_map').insert([
+        {
+          id: newId,
+          name: newObj.name,
+          lat: targetLat,
+          lng: targetLng,
+          location_name: targetLocName,
+          category: newObj.category,
+          emoji: newObj.emoji,
+          color: newObj.color,
+          bg_color: newObj.bgColor,
+          glow_color: newObj.glowColor,
+          members: 1,
+          schedule: newObj.schedule,
+          distance: newObj.distance,
+          image: newObj.image,
+          host_name: 'You',
+          host_avatar: newObj.hostAvatar,
+          description: newObj.description,
+          tags: tagsText,
+          attendees: JSON.stringify(newObj.attendees),
+        }
+      ]);
+
+      if (onRefreshCommunities) {
+        await onRefreshCommunities();
+      }
+    } catch (err) {
+      console.error("Error inserting community to Supabase:", err);
+    }
+
+    // Update UI state & Center Map on newly created location
+    communityGroups.push(newObj);
+    setMapCenter({ lat: targetLat, lng: targetLng });
+    setCreateSuccess(true);
+  }
+
+  const handleCreateEvent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!eventTitle.trim()) return;
+
+    const newEventId = `evt_${Date.now()}`;
+    const targetCommunityId = eventModalCommunity?.id || '';
+    const newEventObj = {
+      id: newEventId,
+      community_id: targetCommunityId,
+      title: eventTitle.trim(),
+      category: eventCategoryItem.label,
+      image: eventImage || eventCategoryItem.image,
+      date_str: eventDateStr || 'Upcoming',
+      time_str: eventTimeStr || '7:00 PM',
+      location: eventLocation || eventModalCommunity?.name,
+      description: eventDescription,
+    };
+    try {
+      await supabase.from('events').insert(newEventObj);
+    } catch (err) {
+      console.error("Error saving event:", err);
+    }
+
+    setCommunityEventsList(prev => [newEventObj, ...prev]);
+    setEventSuccess(true);
+  }
+
+  return (
+    <div
+      ref={mapRef}
+      className={`nm-root ${dragging ? 'nm-dragging' : ''}`}
+      onMouseDown={onMouseDown}
+      onMouseMove={onMouseMove}
+      onMouseUp={onMouseUp}
+      onMouseLeave={onMouseUp}
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+      onWheel={onWheel}
+      onClick={() => { if (!dragging) setSelected(null); }}
+    >
+      {/* MAP TILES WITH THEME STYLING */}
+      {tiles.map(t => (
+        <img
+          key={t.key}
+          className="nm-tile"
+          src={`https://tile.openstreetmap.org/${zoom}/${t.x}/${t.y}.png`}
+          alt=""
+          style={{ left: t.px, top: t.py }}
+          draggable={false}
+        />
+      ))}
+
+      {/* Bangalore "You are here" indicator */}
+      <div
+        className="nm-you-dot"
+        style={{
+          left: userDot.x,
+          top: userDot.y,
+        }}
+      >
+        <span className="nm-you-ripple-1" />
+        <span className="nm-you-ripple-2" />
+        <span className="nm-you-core" />
+        <span className="nm-you-label">You</span>
+      </div>
+
+      {/* COMMUNITY PINS */}
+      {pins.map((pin, idx) => {
+        const visible = filtered.some(f => f.id === pin.id);
+        const isSel = selected?.id === pin.id;
+        const isHov = hovered === pin.id;
+        const isDaily = pin.schedule.toLowerCase().includes('daily');
+        const animClass = `nm-float-${(idx % 3) + 1}`;
+        const popupPos = isSel ? getPopupPos(pin) : { left: 0, top: 0 };
+        return (
+          <React.Fragment key={pin.id}>
+            <button
+              className={`nm-pin ${animClass} ${isSel ? 'nm-pin-sel' : ''} ${isHov ? 'nm-pin-hov' : ''} ${!visible ? 'nm-pin-dim' : ''}`}
+              style={{
+                left: pin.x,
+                top: pin.y,
+                '--nm-glow': pin.glowColor,
+                '--nm-color': pin.color,
+              } as React.CSSProperties}
+              onClick={e => { e.stopPropagation(); setSelected(isSel ? null : pin); }}
+              onMouseEnter={() => setHovered(pin.id)}
+              onMouseLeave={() => setHovered(null)}
+              aria-label={pin.name}
+            >
+              {/* Glow ring */}
+              <span className="nm-pin-glow-ring" style={{ borderColor: pin.color, boxShadow: `0 0 14px ${pin.glowColor}` }} />
+              {/* Pulse for daily */}
+              {isDaily && <span className="nm-pin-pulse" style={{ background: pin.color }} />}
+              {/* Avatar image */}
+              <img src={pin.image} alt={pin.name} className="nm-pin-img" />
+              {/* Emoji badge */}
+              <span className="nm-pin-badge" style={{ background: pin.color }}>{pin.emoji}</span>
+              {/* Member count */}
+              <span className="nm-pin-count" style={{ background: pin.color }}>
+                {pin.members > 99 ? '99+' : pin.members}
+              </span>
+              {/* Hover name tooltip */}
+              {isHov && !isSel && (
+                <span className="nm-pin-tooltip">{pin.name}</span>
+              )}
+            </button>
+
+            {/* POPUP CARD */}
+            {isSel && (
+              <div
+                className="nm-popup"
+                style={{ left: popupPos.left, top: popupPos.top }}
+                onClick={e => e.stopPropagation()}
+              >
+                <div className="nm-popup-cover">
+                  <img src={pin.image} alt={pin.name} />
+                  <div className="nm-popup-gradient" style={{ background: `linear-gradient(to bottom, transparent 40%, ${pin.color}22 100%)` }} />
+                  <button className="nm-popup-close" onClick={() => setSelected(null)}><X size={13} /></button>
+                  <span className="nm-popup-cat-badge" style={{ background: pin.color }}>
+                    {pin.emoji} {pin.category}
+                  </span>
+                </div>
+                <div className="nm-popup-body">
+                  <h3 className="nm-popup-title" style={{ color: pin.color }}>{pin.name}</h3>
+                  <p className="nm-popup-desc">{pin.description}</p>
+                  <div className="nm-popup-meta">
+                    <span><Clock size={12} /> {pin.schedule}</span>
+                    <div className="nm-popup-meta-row">
+                      <span><MapPin size={12} /> {pin.distance}</span>
+                      <span><Users size={12} /> {pin.members} members</span>
+                    </div>
+                  </div>
+                  {/* <div className="nm-popup-tags">
+                    {pin.tags.map(tag => (
+                      <span key={tag} className="nm-popup-tag" style={{ color: pin.color, borderColor: `${pin.color}44`, background: `${pin.color}15` }}>{tag}</span>
+                    ))}
+                  </div> */}
+
+                  {/* ── CARD ACTION BUTTONS: Members, Events & Chat ── */}
+                  <div className="nm-popup-actions-row">
+                    <button
+                      className="nm-card-btn nm-card-btn-members"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setMembersModalCommunity(pin);
+                      }}
+                      title="View Community Members"
+                    >
+                      <Users size={13} />
+                      <span>Members</span>
+                    </button>
+
+                    <button
+                      className="nm-card-btn nm-card-btn-event"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEventsModalCommunity(pin);
+                        setEventSearch('');
+                        fetchEventsForCommunity(pin.id);
+                      }}
+                      title="View Community Events"
+                    >
+                      <Calendar size={13} />
+                      <span>Events</span>
+                    </button>
+
+                    <button
+                      className="nm-card-btn nm-card-btn-chat"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/community-chat?id=${pin.id}`);
+                      }}
+                      title="Chat in Community Channel"
+                    >
+                      <MessageCircleMore size={13} />
+                      <span>Chat</span>
+                    </button>
+                  </div>
+
+                  <div className="nm-popup-host">
+                    <img src={pin.hostAvatar} alt={pin.hostName} />
+                    <span>Hosted by <strong>{pin.hostName}</strong></span>
+                    <Star size={11} style={{ color: pin.color, marginLeft: 'auto' }} />
+                  </div>
+                  <button className="nm-popup-btn" style={{ background: `linear-gradient(135deg, ${pin.color}, ${pin.color}bb)`, boxShadow: `0 4px 16px ${pin.glowColor}` }}>
+                    Join Community →
+                  </button>
+                </div>
+              </div>
+            )}
+          </React.Fragment>
+        );
+      })}
+
+      {/* TOP CONTROLS: CATEGORY DROPDOWN, SEARCH BOX & CREATE COMMUNITY */}
+      <div className="nm-top-left-controls">
+        <div
+          className="nm-cat-dropdown-container"
+          onClick={e => e.stopPropagation()}
+          onWheel={e => e.stopPropagation()}
+          onMouseEnter={() => setCatMenuOpen(true)}
+          onMouseLeave={() => setCatMenuOpen(false)}
+        >
+          <button
+            className="nm-cat-trigger-btn"
+            onClick={() => setCatMenuOpen(open => !open)}
+            aria-label="Filter by Category"
+          >
+            <span className="nm-cat-trigger-emoji">{selectedCatObj.emoji}</span>
+            <span className="nm-cat-trigger-label">{selectedCatObj.label}</span>
+            <ChevronDown size={14} className={`nm-cat-chevron ${catMenuOpen ? 'open' : ''}`} />
+          </button>
+
+          {catMenuOpen && (
+            <div className="nm-cat-menu-list" onWheel={e => e.stopPropagation()}>
+              {MAP_CATEGORIES.map(cat => (
+                <button
+                  key={cat.id}
+                  className={`nm-cat-menu-item ${category === cat.id ? 'active' : ''}`}
+                  onClick={() => {
+                    setCategory(cat.id);
+                    setCatMenuOpen(false);
+                  }}
+                >
+                  <span className="nm-cat-item-emoji">{cat.emoji}</span>
+                  <span className="nm-cat-item-label">{cat.label}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* SEARCH BOX FOR COMMUNITY NAME */}
+        <div
+          className="nm-search-box-container"
+          onClick={e => e.stopPropagation()}
+          onWheel={e => e.stopPropagation()}
+        >
+          <Search size={14} className="nm-search-box-icon" />
+          <input
+            type="text"
+            className="nm-search-box-input"
+            placeholder="Search communities..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+          {search && (
+            <button
+              className="nm-search-box-clear"
+              onClick={() => setSearch('')}
+              title="Clear search"
+            >
+              <X size={12} />
+            </button>
+          )}
+        </div>
+
+        {/* Futuristic Holographic Action Node: Create Community */}
+        <button
+          className="create-community-btn cyber-action-node"
+          onClick={(e) => {
+            e.stopPropagation();
+            setCreateForm({
+              name: '',
+              category: 'tech',
+              emoji: '💻',
+              description: '',
+              schedule: '',
+              distance: '1.5 km',
+              image: '',
+              tags: '',
+              locationName: null,
+              lat: null,
+              lng: null,
+            });
+            setCreateSuccess(false);
+            setShowCreateCommunityModal(true);
+          }}
+          title="Create New Community"
+        >
+          <span className="cyber-pulse-ring" />
+          <span className="cyber-orbit-glow" />
+          <div className="cyber-node-icon">
+            <Plus size={17} strokeWidth={3} className="cyber-plus-svg" />
+          </div>
+          <span className="cyber-node-text">
+            {/* <span className="cyber-node-sub">NEW</span> */}
+            <span className="cyber-node-main">Community</span>
+          </span>
+        </button>
+      </div>
+
+      {/* MAP ZOOM & RECENTER CONTROLS */}
+      <div className="nm-ctrl" onClick={e => e.stopPropagation()}>
+        <button className="nm-ctrl-btn" onClick={zoomIn} disabled={zoom >= MAP_MAX_ZOOM} title="Zoom in" aria-label="Zoom in">
+          <Plus size={18} strokeWidth={2.5} />
+        </button>
+        <div className="nm-zoom-label">{zoom}</div>
+        <button className="nm-ctrl-btn" onClick={zoomOut} disabled={zoom <= MAP_MIN_ZOOM} title="Zoom out" aria-label="Zoom out">
+          <Minus size={18} strokeWidth={2.5} />
+        </button>
+        <div className="nm-ctrl-sep" />
+        <button className="nm-ctrl-btn" onClick={recenter} title="Back to my location" aria-label="Recenter location">
+          <Navigation2 size={17} />
+        </button>
+      </div>
+
+      {/* ATTRIBUTION */}
+      <p className="nm-attr">
+        © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors
+      </p>
+
+      {/* ── OPTION 2: SEPARATE POPUP MODAL VIEW ── */}
+      {membersModalCommunity && (
+        <div
+          className="nm-members-modal-backdrop"
+          onClick={() => setMembersModalCommunity(null)}
+          onMouseDown={e => e.stopPropagation()}
+          onWheel={e => e.stopPropagation()}
+        >
+          <div
+            className="nm-members-modal-card"
+            onClick={e => e.stopPropagation()}
+            onMouseDown={e => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="nm-modal-header" style={{ borderColor: `${membersModalCommunity.color}44` }}>
+              <div className="nm-modal-header-info">
+                <h3 className="nm-modal-title">{membersModalCommunity.name}</h3>
+                <span className="nm-modal-badge" style={{ background: membersModalCommunity.color }}>
+                  {membersModalCommunity.emoji} {membersModalCommunity.category}
+                </span>
+              </div>
+
+              <div className="nm-modal-header-actions">
+                <button
+                  className="nm-modal-add-btn"
+                  onClick={() => {
+                    setAddMemberCommunity(membersModalCommunity);
+                    setMembersModalCommunity(null);
+                    setSelected(null);
+                    setInviteContact('');
+                    setInviteSuccess(false);
+                    setShowAddMemberModal(true);
+                  }}
+                  title="Add new member to this community"
+                >
+                  <UserPlus size={13} />
+                  <span>Add Member</span>
+                </button>
+
+                <button
+                  className="nm-modal-close-btn"
+                  onClick={() => setMembersModalCommunity(null)}
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Search */}
+            <div className="nm-modal-search-wrap">
+              <Search size={14} className="nm-modal-search-icon" />
+              <input
+                className="nm-modal-search-inp"
+                placeholder="Search members by name..."
+                value={memberSearch}
+                onChange={e => setMemberSearch(e.target.value)}
+              />
+              {memberSearch && (
+                <button className="nm-modal-search-x" onClick={() => setMemberSearch('')}>
+                  <X size={12} />
+                </button>
+              )}
+            </div>
+
+            {/* Modal Members Grid */}
+            <div className="nm-modal-members-grid">
+              {(membersModalCommunity.attendees || [])
+                .filter(m => !memberSearch || m.name.toLowerCase().includes(memberSearch.toLowerCase()))
+                .map((mem, mIdx) => (
+                  <div key={mIdx} className="nm-modal-member-card">
+                    <div className="nm-modal-avatar-wrap">
+                      <img src={mem.avatar} alt={mem.name} />
+                      <span className={`nm-modal-status-dot ${mem.role === 'Host' ? 'host' : 'online'}`} />
+                    </div>
+                    <div className="nm-modal-member-meta">
+                      <span className="nm-modal-member-name">{mem.name}</span>
+                    </div>
+                    <button className="nm-modal-msg-btn" title="Info" >
+                      <span className={`nm-modal-member-tag ${mem.role === 'Host' ? 'host' : ''}`}>
+                        {mem.role || 'Member'}
+                      </span>
+                    </button>
+                    {/* <button
+                      className="nm-modal-msg-btn"
+                      onClick={() => navigate('/chat')}
+                      title="Send Message"
+                    >
+                      Message
+                    </button> */}
+                  </div>
+                ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── EVENTS LIST POPUP MODAL VIEW ── */}
+      {eventsModalCommunity && (
+        <div
+          className="nm-members-modal-backdrop"
+          onClick={() => setEventsModalCommunity(null)}
+          onMouseDown={e => e.stopPropagation()}
+          onWheel={e => e.stopPropagation()}
+        >
+          <div
+            className="nm-members-modal-card"
+            onClick={e => e.stopPropagation()}
+            onMouseDown={e => e.stopPropagation()}
+            style={{ maxWidth: '480px' }}
+          >
+            {/* Modal Header */}
+            <div className="nm-modal-header" style={{ borderColor: `${eventsModalCommunity.color}44` }}>
+              <div className="nm-modal-header-info">
+                <h3 className="nm-modal-title">{eventsModalCommunity.name}</h3>
+                <span className="nm-modal-badge" style={{ background: eventsModalCommunity.color }}>
+                  <Calendar size={11} style={{ marginRight: 4 }} /> Events ({communityEventsList.length})
+                </span>
+              </div>
+
+              <div className="nm-modal-header-actions">
+                <button
+                  className="nm-modal-add-btn"
+                  onClick={() => {
+                    const targetComm = eventsModalCommunity;
+                    setEventsModalCommunity(null);
+                    setSelected(null);
+                    setEventModalCommunity(targetComm);
+                    setEventCategoryItem(EVENT_CATEGORY_OPTIONS[0]);
+                    setEventTitle('');
+                    setEventImage(EVENT_CATEGORY_OPTIONS[0].image);
+                    setEventDateStr('');
+                    setEventTimeStr('');
+                    setEventLocation(targetComm.name || targetComm.locationName || '');
+                    setEventDescription('');
+                    setEventSuccess(false);
+                    setShowCreateEventModal(true);
+                  }}
+                  title="Add Event for this Community"
+                  style={{
+                    background: `linear-gradient(135deg, ${eventsModalCommunity.color}, ${eventsModalCommunity.color}cc)`
+                  }}
+                >
+                  <Plus size={13} />
+                  <span>Add Event</span>
+                </button>
+
+                <button
+                  className="nm-modal-close-btn"
+                  onClick={() => setEventsModalCommunity(null)}
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Search */}
+            <div className="nm-modal-search-wrap">
+              <Search size={14} className="nm-modal-search-icon" />
+              <input
+                className="nm-modal-search-inp"
+                placeholder="Search events by title or location..."
+                value={eventSearch}
+                onChange={e => setEventSearch(e.target.value)}
+              />
+              {eventSearch && (
+                <button className="nm-modal-search-clear" onClick={() => setEventSearch('')}>
+                  <X size={12} />
+                </button>
+              )}
+            </div>
+
+            {/* Events List Body */}
+            <div className="nm-members-list-body">
+              {(() => {
+                const filteredEvents = communityEventsList.filter(evt =>
+                  evt.title?.toLowerCase().includes(eventSearch.toLowerCase()) ||
+                  evt.location?.toLowerCase().includes(eventSearch.toLowerCase()) ||
+                  evt.category?.toLowerCase().includes(eventSearch.toLowerCase())
+                );
+
+                if (filteredEvents.length === 0) {
+                  return (
+                    <div className="nm-members-empty">
+                      <Calendar size={28} style={{ opacity: 0.4, marginBottom: 8 }} />
+                      <p>No events found for <strong>{eventsModalCommunity.name}</strong></p>
+                    </div>
+                  );
+                }
+
+                return filteredEvents.map((evt) => (
+                  <div key={evt.id} className="nm-event-card-item">
+                    {evt.image && (
+                      <img src={evt.image} alt={evt.title} className="nm-event-card-img" />
+                    )}
+                    <div className="nm-event-card-content">
+                      <div className="nm-event-card-header">
+                        <h4 className="nm-event-card-title">{evt.title}</h4>
+                        <span className="nm-event-cat-badge" style={{ background: `${eventsModalCommunity.color}22`, color: eventsModalCommunity.color, borderColor: `${eventsModalCommunity.color}55` }}>
+                          {evt.category || 'Event'}
+                        </span>
+                      </div>
+                      <div className="nm-event-card-meta">
+                        <span><Clock size={11} /> {evt.date_str || evt.dateStr || 'Upcoming'} at {evt.time_str || evt.timeStr || '7:00 PM'}</span>
+                        <span><MapPin size={11} /> {evt.location || 'Venue'}</span>
+                      </div>
+                      {evt.description && (
+                        <p className="nm-event-card-desc">{evt.description}</p>
+                      )}
+                    </div>
+                  </div>
+                ));
+              })()}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── NEW POPUP MODAL: ADD / INVITE MEMBER ── */}
+      {showAddMemberModal && (
+        <div
+          className="nm-add-member-modal-backdrop"
+          onClick={() => setShowAddMemberModal(false)}
+          onMouseDown={e => e.stopPropagation()}
+          onWheel={e => e.stopPropagation()}
+        >
+          <div
+            className="nm-add-member-modal-card"
+            onClick={e => e.stopPropagation()}
+            onMouseDown={e => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="nm-add-modal-header">
+              <div className="nm-add-modal-header-left">
+                <div className="nm-add-modal-icon-badge" style={{ background: addMemberCommunity?.color || '#06b6d4' }}>
+                  <UserPlus size={18} color="#fff" />
+                </div>
+                <div>
+                  <h3 className="nm-add-modal-title">Add Member</h3>
+                  <p className="nm-add-modal-subtitle">
+                    Invite new member to <strong>{addMemberCommunity?.name || 'Community'}</strong>
+                  </p>
+                </div>
+              </div>
+              <button
+                className="nm-modal-close-btn"
+                onClick={() => setShowAddMemberModal(false)}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Modal Body / Form */}
+            <div className="nm-add-modal-body">
+              {inviteSuccess ? (
+                <div className="nm-add-modal-success">
+                  <CheckCircle2 size={44} className="nm-success-icon" />
+                  <h4>Invitation Sent!</h4>
+                  <p>An invite link has been dispatched to <strong>{inviteContact}</strong></p>
+                  <button
+                    className="nm-invite-send-btn"
+                    onClick={() => setShowAddMemberModal(false)}
+                  >
+                    Done
+                  </button>
+                </div>
+              ) : (
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (!inviteContact.trim()) return;
+                    setInviteSuccess(true);
+                  }}
+                  className="nm-add-modal-form"
+                >
+                  <label className="nm-add-modal-label">
+                    Please enter mobile number or email address
+                  </label>
+                  <div className="nm-add-input-wrap">
+                    <Mail size={16} className="nm-add-input-icon" />
+                    <input
+                      type="text"
+                      className="nm-add-modal-inp"
+                      placeholder="e.g. +91 98765 43210 or name@example.com"
+                      value={inviteContact}
+                      onChange={e => setInviteContact(e.target.value)}
+                      autoFocus
+                    />
+                  </div>
+
+                  <div className="nm-add-modal-footer">
+                    <button
+                      type="button"
+                      className="nm-add-cancel-btn"
+                      onClick={() => setShowAddMemberModal(false)}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="nm-invite-send-btn"
+                      disabled={!inviteContact.trim()}
+                      style={{
+                        background: addMemberCommunity
+                          ? `linear-gradient(135deg, ${addMemberCommunity.color}, ${addMemberCommunity.color}bb)`
+                          : undefined
+                      }}
+                    >
+                      <Send size={14} />
+                      <span>Send</span>
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+      {/* ── NEW POPUP MODAL: CREATE COMMUNITY FORM ── */}
+      {showCreateCommunityModal && (
+        <div
+          className="nm-create-modal-backdrop"
+          onClick={() => setShowCreateCommunityModal(false)}
+          onMouseDown={e => e.stopPropagation()}
+          onWheel={e => e.stopPropagation()}
+        >
+          <div
+            className="nm-create-modal-card"
+            onClick={e => e.stopPropagation()}
+            onMouseDown={e => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="nm-create-modal-header">
+              <div className="nm-create-header-left">
+                <div className="nm-create-badge">
+                  <Plus size={20} color="#fff" />
+                </div>
+                <div>
+                  <h3 className="nm-create-title">Create Community</h3>
+                  <p className="nm-create-subtitle">Build and host a new local community group</p>
+                </div>
+              </div>
+              <button
+                className="nm-modal-close-btn"
+                onClick={() => setShowCreateCommunityModal(false)}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Modal Body / Form */}
+            <div className="nm-create-modal-body">
+              {createSuccess ? (
+                <div className="nm-add-modal-success">
+                  <CheckCircle2 size={44} className="nm-success-icon" />
+                  <h4>Community Created!</h4>
+                  <p>Your community <strong>{createForm.name}</strong> is now live on the map.</p>
+                  <button
+                    className="nm-invite-send-btn"
+                    onClick={() => setShowCreateCommunityModal(false)}
+                  >
+                    View on Map
+                  </button>
+                </div>
+              ) : (
+                <form onSubmit={handleCreateCommunity} className="nm-create-form" >
+                  {/* Community Name */}
+                  <div className="nm-form-group">
+                    <label className="nm-form-label">Name *</label>
+                    <input
+                      type="text"
+                      className="nm-form-inp"
+                      placeholder="Community Name"
+                      value={createForm.name}
+                      onChange={e => setCreateForm({ ...createForm, name: e.target.value })}
+                      required
+                      autoFocus
+                    />
+                  </div>
+
+                  {/* Location Picker Input (Google Style Autocomplete with Lat/Lng) */}
+                  <div className="nm-form-group nm-location-group">
+                    <label className="nm-form-label">
+                      Location *
+                      {selectedLocation && (
+                        <span className="nm-location-coords-badge">
+                          📍 Lat: {selectedLocation.lat.toFixed(4)}, Lng: {selectedLocation.lng.toFixed(4)}
+                        </span>
+                      )}
+                    </label>
+
+                    <div className="nm-location-input-wrap">
+                      <MapPin size={16} className="nm-location-icon" />
+                      <input
+                        type="text"
+                        className="nm-form-inp nm-location-inp"
+                        placeholder="Start typing location..."
+                        value={locationInput}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setLocationInput(val);
+                          setSelectedLocation(null);
+
+                          if (val.trim().length > 0) {
+                            const filtered = BANGALORE_LOCATIONS.filter(l =>
+                              l.name.toLowerCase().includes(val.toLowerCase()) ||
+                              l.area.toLowerCase().includes(val.toLowerCase())
+                            );
+                            setLocationSuggestions(filtered);
+                            setShowLocationDropdown(true);
+
+                            // Fetch live geocoding suggestions for custom addresses
+                            fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(val + ', Bangalore')}&limit=5`)
+                              .then(res => res.json())
+                              .then(geoData => {
+                                if (Array.isArray(geoData) && geoData.length > 0) {
+                                  const geoOptions: LocationOption[] = geoData.map((g: any) => ({
+                                    name: g.display_name.split(',').slice(0, 3).join(','),
+                                    lat: parseFloat(g.lat),
+                                    lng: parseFloat(g.lon),
+                                    area: 'Bengaluru'
+                                  }));
+                                  setLocationSuggestions(prev => {
+                                    const combined = [...prev];
+                                    geoOptions.forEach(opt => {
+                                      if (!combined.some(c => c.name === opt.name)) combined.push(opt);
+                                    });
+                                    return combined;
+                                  });
+                                }
+                              })
+                              .catch(() => { });
+                          } else {
+                            setLocationSuggestions([]);
+                            setShowLocationDropdown(false);
+                          }
+                        }}
+                        onFocus={() => {
+                          if (locationInput.trim().length > 0) {
+                            setShowLocationDropdown(true);
+                          } else {
+                            setShowLocationDropdown(false);
+                          }
+                        }}
+                      />
+                      {locationInput && (
+                        <button
+                          type="button"
+                          className="nm-location-clear-btn"
+                          onClick={() => {
+                            setLocationInput('');
+                            setSelectedLocation(null);
+                            setLocationSuggestions([]);
+                            setShowLocationDropdown(false);
+                          }}
+                          title="Clear location"
+                        >
+                          <X size={12} />
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Google Style Autocomplete Suggestions Dropdown */}
+                    {showLocationDropdown && locationSuggestions.length > 0 && (
+                      <div className="nm-location-dropdown" onMouseDown={e => e.stopPropagation()}>
+                        <div className="nm-location-dropdown-title">Matching Bangalore Locations</div>
+                        {locationSuggestions.map((loc, lIdx) => (
+                          <div
+                            key={lIdx}
+                            className="nm-location-item"
+                            onClick={() => {
+                              setSelectedLocation(loc);
+                              setLocationInput(loc.name);
+                              setCreateForm(prev => ({
+                                ...prev,
+                                locationName: loc.name,
+                                lat: loc.lat,
+                                lng: loc.lng,
+                                distance: '1.2 km'
+                              }));
+                              setShowLocationDropdown(false);
+                            }}
+                          >
+                            <div className="nm-location-item-icon">
+                              <MapPin size={15} />
+                            </div>
+                            <div className="nm-location-item-meta">
+                              <span className="nm-location-item-name">{loc.name}</span>
+                              <span className="nm-location-item-area">{loc.area} • Lat: {loc.lat.toFixed(4)}, Lng: {loc.lng.toFixed(4)}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Category Selection Grid / Chips */}
+                  <div className="nm-form-group">
+                    <label className="nm-form-label">Category *</label>
+                    <div className="nm-category-grid-picker">
+                      {MAP_CATEGORIES.filter(c => c.id !== 'all').map(cat => {
+                        const isSelected = createForm.category === cat.id;
+                        return (
+                          <button
+                            type="button"
+                            key={cat.id}
+                            className={`nm-category-pick-btn ${isSelected ? 'selected' : ''}`}
+                            onClick={() => {
+                              setCreateForm({
+                                ...createForm,
+                                category: cat.id,
+                                emoji: cat.emoji
+                              });
+                            }}
+                          >
+                            <span className="nm-cat-pick-emoji">{cat.emoji}</span>
+                            <span className="nm-cat-pick-label">{cat.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Schedule */}
+                  <div className="nm-form-group">
+                    <label className="nm-form-label">Schedule / Meeting Time</label>
+                    <input
+                      type="text"
+                      className="nm-form-inp"
+                      placeholder="e.g. Every Friday · 7:00 PM"
+                      value={createForm.schedule}
+                      onChange={e => setCreateForm({ ...createForm, schedule: e.target.value })}
+                    />
+                  </div>
+
+                  {/* Description */}
+                  <div className="nm-form-group">
+                    <label className="nm-form-label">Description</label>
+                    <textarea
+                      className="nm-form-textarea"
+                      rows={3}
+                      placeholder="Briefly describe what your community is about..."
+                      value={createForm.description}
+                      onChange={e => setCreateForm({ ...createForm, description: e.target.value })}
+                    />
+                  </div>
+
+                  {/* Cover Image URL */}
+                  <div className="nm-form-group">
+                    <label className="nm-form-label">Cover Image URL</label>
+                    <input
+                      type="url"
+                      className="nm-form-inp"
+                      placeholder="https://images.unsplash.com/..."
+                      value={createForm.image}
+                      onChange={e => setCreateForm({ ...createForm, image: e.target.value })}
+                    />
+                  </div>
+
+                  {/* Tags */}
+                  <div className="nm-form-group">
+                    <label className="nm-form-label">Tags</label>
+                    <input
+                      type="text"
+                      className="nm-form-inp"
+                      placeholder="Tags"
+                      value={createForm.tags}
+                      onChange={e => setCreateForm({ ...createForm, tags: e.target.value })}
+                    />
+                  </div>
+
+                  {/* Footer Buttons */}
+                  <div className="nm-add-modal-footer">
+                    <button
+                      type="button"
+                      className="nm-add-cancel-btn"
+                      onClick={() => setShowCreateCommunityModal(false)}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="nm-invite-send-btn"
+                      disabled={!createForm.name.trim()}
+                    >
+                      <Plus size={16} />
+                      <span>Create Community</span>
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+      {/* ── POPUP MODAL: CREATE EVENT / ACTIVITY FOR COMMUNITY ── */}
+      {showCreateEventModal && (
+        <div
+          className="nm-create-modal-backdrop"
+          onClick={() => setShowCreateEventModal(false)}
+          onMouseDown={e => e.stopPropagation()}
+          onWheel={e => e.stopPropagation()}
+        >
+          <div
+            className="nm-create-modal-card"
+            onClick={e => e.stopPropagation()}
+            onMouseDown={e => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="nm-create-modal-header">
+              <div className="nm-create-header-left">
+                <div
+                  className="nm-create-badge"
+                  style={{ background: eventModalCommunity ? `linear-gradient(135deg, ${eventModalCommunity.color}, ${eventModalCommunity.color}dd)` : undefined }}
+                >
+                  <Calendar size={20} color="#fff" />
+                </div>
+                <div>
+                  <h3 className="nm-create-title">Create Event</h3>
+                  <p className="nm-create-subtitle">
+                    Add new activity for <strong>{eventModalCommunity?.name || 'Community'}</strong>
+                  </p>
+                </div>
+              </div>
+              <button
+                className="nm-modal-close-btn"
+                onClick={() => setShowCreateEventModal(false)}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Modal Body / Form */}
+            <div className="nm-create-modal-body">
+              {eventSuccess ? (
+                <div className="nm-add-modal-success">
+                  <CheckCircle2 size={44} className="nm-success-icon" />
+                  <h4>Event Created!</h4>
+                  <p>Your event <strong>{eventTitle}</strong> is now posted for {eventModalCommunity?.name}.</p>
+                  <button
+                    className="nm-invite-send-btn"
+                    onClick={() => setShowCreateEventModal(false)}
+                  >
+                    Done
+                  </button>
+                </div>
+              ) : (
+                <form
+                  onSubmit={handleCreateEvent}
+                  className="nm-create-form"
+                >
+                  {/* Category Picker Selector (2-row scrollable circle grid from CommunityDetailsPage) */}
+                  <div className="nm-form-group category-picker-group">
+                    <label className="nm-form-label">Category *</label>
+                    <div className="category-scroll-container" onWheel={e => e.stopPropagation()}>
+                      <div className="category-items-grid">
+                        {EVENT_CATEGORY_OPTIONS.map((cat) => {
+                          const isSelected = eventCategoryItem.id === cat.id;
+                          return (
+                            <div
+                              key={cat.id}
+                              className={`category-item-card ${isSelected ? 'selected' : ''}`}
+                              onClick={() => {
+                                setEventCategoryItem(cat);
+                                if (!eventImage) setEventImage(cat.image);
+                              }}
+                            >
+                              <div className="category-icon-circle">
+                                <span className="category-emoji">{cat.emoji}</span>
+                              </div>
+                              <span className="category-item-label">{cat.label}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Activity Title */}
+                  <div className="nm-form-group">
+                    <label className="nm-form-label">Activity Title *</label>
+                    <input
+                      type="text"
+                      className="nm-form-inp"
+                      placeholder="e.g. 3v3 Friendly Football Match"
+                      value={eventTitle}
+                      onChange={e => setEventTitle(e.target.value)}
+                      required
+                      autoFocus
+                    />
+                  </div>
+
+                  {/* Date & Time Row */}
+                  <div className="nm-form-row">
+                    <div className="nm-form-group flex-1">
+                      <label className="nm-form-label">Date</label>
+                      <input
+                        type="text"
+                        className="nm-form-inp"
+                        placeholder="e.g. Tomorrow or July 28"
+                        value={eventDateStr}
+                        onChange={e => setEventDateStr(e.target.value)}
+                      />
+                    </div>
+                    <div className="nm-form-group flex-1">
+                      <label className="nm-form-label">Time</label>
+                      <input
+                        type="text"
+                        className="nm-form-inp"
+                        placeholder="e.g. 6:00 PM"
+                        value={eventTimeStr}
+                        onChange={e => setEventTimeStr(e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Location / Venue */}
+                  <div className="nm-form-group">
+                    <label className="nm-form-label">Location / Venue</label>
+                    <input
+                      type="text"
+                      className="nm-form-inp"
+                      placeholder="e.g. Koramangala Turf Ground Pitch 1"
+                      value={eventLocation}
+                      onChange={e => setEventLocation(e.target.value)}
+                    />
+                  </div>
+
+                  {/* Cover Image URL */}
+                  <div className="nm-form-group">
+                    <label className="nm-form-label">Cover Image URL</label>
+                    <input
+                      type="url"
+                      className="nm-form-inp"
+                      placeholder="https://images.unsplash.com/..."
+                      value={eventImage}
+                      onChange={e => setEventImage(e.target.value)}
+                    />
+                  </div>
+
+                  {/* Description */}
+                  <div className="nm-form-group">
+                    <label className="nm-form-label">Description</label>
+                    <textarea
+                      className="nm-form-textarea"
+                      rows={3}
+                      placeholder="Brief details about rules, equipment required, or plan..."
+                      value={eventDescription}
+                      onChange={e => setEventDescription(e.target.value)}
+                    />
+                  </div>
+
+                  {/* Footer Action Buttons */}
+                  <div className="nm-add-modal-footer">
+                    <button
+                      type="button"
+                      className="nm-add-cancel-btn"
+                      onClick={() => setShowCreateEventModal(false)}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="nm-invite-send-btn"
+                      disabled={!eventTitle.trim()}
+                      style={{
+                        background: eventModalCommunity
+                          ? `linear-gradient(135deg, ${eventModalCommunity.color}, ${eventModalCommunity.color}bb)`
+                          : undefined
+                      }}
+                    >
+                      <Plus size={16} />
+                      <span>Create Event</span>
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 
 // Hook to get responsive stage dimensions — always fits within viewport
 const useStageSize = () => {
@@ -80,12 +1675,72 @@ export const NetworkConstellationPage: React.FC = () => {
   const { toggleFollow, startCall, setActiveChatUserId } = useCommunication();
   const navigate = useNavigate();
 
-  const [communities, setCommunities] = useState<CommunityItem[]>([])
+  const [communities, setCommunities] = useState<CommunityItem[]>([]);
+  const [communityGroups, setCommunityGroups] = useState<MapCommunity[]>([]);
 
   useEffect(() => {
-    console.log("communities: ", communities)
     fetchCommunities();
+    fetchCommunityGroups();
   }, []);
+
+  const fetchCommunityGroups = async () => {
+    const { data, error } = await supabase.from('community_map').select('*');
+
+    if (error) {
+      console.error(error);
+      return;
+    }
+
+    if (data) {
+      const mapped: MapCommunity[] = data.map((g, idx) => {
+        const palette = UI_COMMUNITY_COLOR_PALETTES[idx % UI_COMMUNITY_COLOR_PALETTES.length];
+        let parsedAttendees = [
+          { name: g.host_name || 'Host', avatar: g.host_avatar || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=60&q=80', role: 'Host' },
+          { name: 'Priya Sharma', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=60&q=80', role: 'Member' },
+          { name: 'Arjun Mehta', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=60&q=80', role: 'Member' },
+          { name: 'Rohan Kumar', avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=60&q=80', role: 'Member' },
+          { name: 'Kavya B.', avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=60&q=80', role: 'Member' },
+        ];
+        if (g.attendees) {
+          try {
+            const raw = typeof g.attendees === 'string' ? JSON.parse(g.attendees) : g.attendees;
+            if (Array.isArray(raw) && raw.length > 0) {
+              parsedAttendees = raw.map((a: any) => ({
+                name: typeof a === 'string' ? a : a.name || 'Member',
+                avatar: typeof a === 'object' && a.avatar ? a.avatar : 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=60&q=80',
+                role: typeof a === 'object' && a.role ? a.role : 'Member',
+              }));
+            }
+          } catch (e) {
+            console.error('Error parsing attendees:', e);
+          }
+        }
+        return {
+          id: String(g.id),
+          name: g.name || '',
+          lat: Number(g.lat),
+          lng: Number(g.lng),
+          locationName: g.location_name || g.location || '',
+          category: g.category || 'all',
+          emoji: g.emoji || '📌',
+          color: palette.color,
+          bgColor: palette.bgColor,
+          glowColor: palette.glowColor,
+          members: Number(g.members || parsedAttendees.length),
+          schedule: g.schedule || '',
+          distance: g.distance || '',
+          image: g.image || 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&w=320&q=85',
+          hostName: g.host_name || g.hostName || '',
+          hostAvatar: g.host_avatar || g.hostAvatar || '',
+          description: g.description || '',
+          tags: g.tags || '',
+          attendees: parsedAttendees,
+        };
+      });
+
+      setCommunityGroups(mapped);
+    }
+  };
 
   // GET - fetch all
   const fetchCommunities = async () => {
@@ -423,104 +2078,9 @@ export const NetworkConstellationPage: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* Main Constellation Arena */}
+      {/* Main Map Area */}
       <main className="constellation-arena">
-        <div
-          className="constellation-stage"
-          style={{ width: stage.stageSize, height: stage.stageSize }}
-        >
-
-
-
-          {/* Ambient Dust Particles */}
-          <div className="ambient-particles">
-            <span className="dust p-pink" style={{ top: '35%', left: '25%' }} />
-            <span className="dust p-purple" style={{ top: '65%', left: '72%' }} />
-            <span className="dust p-orange" style={{ top: '22%', left: '60%' }} />
-            <span className="dust p-pink" style={{ top: '50%', left: '80%' }} />
-            <span className="dust p-green" style={{ top: '78%', left: '32%' }} />
-            <span className="dust p-purple" style={{ top: '15%', left: '38%' }} />
-          </div>
-
-          {/* CENTRAL NODE (Silhouette User Profile) */}
-          <motion.div
-            className="constellation-node center-node"
-            style={{ width: stage.centerSize, height: stage.centerSize }}
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-            onClick={() => navigate(`/profile/${authUser.id}`)}
-          >
-            <div className="center-node-glow" style={{ width: stage.centerSize * 1.75, height: stage.centerSize * 1.75 }} />
-            <div className="center-silhouette">
-              <img src={authUser.avatar} alt={authUser.name} className="silhouette-icon" />
-              {/* <UserIcon size={stage.centerSize * 0.45} className="silhouette-icon" /> */}
-            </div>
-            <span className="node-pulse-ring" />
-          </motion.div>
-
-          {/* INNER SATELLITE NODES (Large size) */}
-          {innerOrbitNodes.map((node, idx) => {
-            const coords = getCoordinates(idx, innerOrbitNodes.length, stage.innerRadius);
-            const isCommunity = node.type === 'community';
-            return (
-              <motion.div
-                key={node.id}
-                className={`constellation-node satellite-node inner-sat ${isCommunity ? 'community-node' : ''}`}
-                style={{
-                  width: 45,
-                  height: 45,
-                  transform: `translate(-50%, -50%)`,
-                  left: `calc(50% + ${coords.x}px)`,
-                  top: `calc(50% + ${coords.y}px)`
-                }}
-                initial={{ scale: 0, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ delay: 0.1 * idx, type: 'spring' }}
-                onClick={(e) => handleNodeClick(e, node.data, node.type)}
-              >
-                <div className={`satellite-glow-ring ${isCommunity ? `community-glow ${node.data.theme}-glow` : node.data.status}`} />
-                <img src={node.avatar} alt={node.name} className="node-avatar-img" />
-                {isCommunity && (
-                  <div className={`node-group-badge ${node.data.theme}-badge`}>
-                    <span style={{ fontSize: '10px', lineHeight: 1 }}>{THEME_EMOJIS[node.data.theme]}</span>
-                  </div>
-                )}
-              </motion.div>
-            );
-          })}
-
-          {/* OUTER SATELLITE NODES (Small size) */}
-          {outerOrbitNodes.map((node, idx) => {
-            const coords = getCoordinates(idx, outerOrbitNodes.length, stage.outerRadius);
-            const isCommunity = node.type === 'community';
-            return (
-              <motion.div
-                key={node.id}
-                className={`constellation-node satellite-node outer-sat ${isCommunity ? 'community-node' : ''}`}
-                style={{
-                  width: 45,
-                  height: 45,
-                  transform: `translate(-50%, -50%)`,
-                  left: `calc(50% + ${coords.x}px)`,
-                  top: `calc(50% + ${coords.y}px)`
-                }}
-                initial={{ scale: 0, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ delay: 0.2 + 0.05 * idx, type: 'spring' }}
-                onClick={(e) => handleNodeClick(e, node.data, node.type)}
-              >
-                <div className={`satellite-glow-ring ${isCommunity ? `community-glow ${node.data.theme}-glow` : node.data.status}`} />
-                <img src={node.avatar} alt={node.name} className="node-avatar-img" />
-                {isCommunity && (
-                  <div className={`node-group-badge ${node.data.theme}-badge`}>
-                    <span style={{ fontSize: '8px', lineHeight: 1 }}>{THEME_EMOJIS[node.data.theme]}</span>
-                  </div>
-                )}
-              </motion.div>
-            );
-          })}
-        </div>
+        <NetworkMap communityGroups={communityGroups} onRefreshCommunities={fetchCommunityGroups} />
       </main>
 
       {/* Tooltip / Detail Card */}

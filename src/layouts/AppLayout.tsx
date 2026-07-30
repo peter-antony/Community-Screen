@@ -34,6 +34,11 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
 
   if (!user) return <>{children}</>;
 
+  const isNoSidebarPage =
+    location.pathname === '/community-chat' ||
+    location.pathname.startsWith('/profile') ||
+    location.pathname.startsWith('/community-details');
+
   const menuItems = [
     { path: '/network', label: 'Network', icon: Network },
     // { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -50,66 +55,63 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
     navigate('/');
   };
 
-
-
   return (
     <div className="app-container" onClick={() => setMobileMenuOpen(false)}>
-      {/* Sidebar Navigation */}
-      <aside className={`app-sidebar glass-panel ${isCollapsed ? 'collapsed' : ''}`}>
-        <div className="sidebar-header">
-          <div className="logo-container">
-            <div className="logo-glow-dot" />
-            <span className="logo-text">COMMUNITY</span>
-          </div>
-          <button className="sidebar-toggle" onClick={() => setIsCollapsed(!isCollapsed)}>
-            {isCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
-          </button>
-        </div>
-
-        <nav className="sidebar-nav">
-          {menuItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = location.pathname === item.path;
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={`nav-item ${isActive ? 'active' : ''}`}
-                title={item.label}
-              >
-                <div className="nav-item-glow" />
-                <Icon size={20} className="nav-icon" />
-                <span className="nav-label">{item.label}</span>
-              </Link>
-            );
-          })}
-        </nav>
-
-        {/* User Card at Sidebar Bottom */}
-        {/* <div className="sidebar-footer">
-          <Link to={`/profile/${user.id}`} className="sidebar-user-card">
-            <img src={user.avatar} alt={user.name} className="sidebar-avatar" />
-            <div className="sidebar-user-details">
-              <span className="sidebar-username">{user.name}</span>
-              <span className="sidebar-userrole">{user.role}</span>
+      {/* Sidebar Navigation (Hidden on Community Chat and Profile Pages) */}
+      {!isNoSidebarPage && (
+        <aside className={`app-sidebar glass-panel ${isCollapsed ? 'collapsed' : ''}`}>
+          <div className="sidebar-header">
+            <div className="logo-container">
+              <div className="logo-glow-dot" />
+              <span className="logo-text">COMMUNITY</span>
             </div>
-          </Link>
-          <button className="logout-btn" onClick={handleLogout} title="Log Out">
-            <LogOut size={18} />
-          </button>
-        </div> */}
-      </aside>
+            <button className="sidebar-toggle" onClick={() => setIsCollapsed(!isCollapsed)}>
+              {isCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+            </button>
+          </div>
+
+          <nav className="sidebar-nav">
+            {menuItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = location.pathname === item.path;
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className={`nav-item ${isActive ? 'active' : ''}`}
+                  title={item.label}
+                >
+                  <div className="nav-item-glow" />
+                  <Icon size={20} className="nav-icon" />
+                  <span className="nav-label">{item.label}</span>
+                </Link>
+              );
+            })}
+          </nav>
+        </aside>
+      )}
 
       {/* Main Workspace Frame */}
       <div className="main-workspace">
         <header className="workspace-header glass-panel" onClick={(e) => e.stopPropagation()}>
           <div className="header-breadcrumbs">
-            <button
-              className="mobile-menu-toggle"
-              onClick={(e) => { e.stopPropagation(); setMobileMenuOpen(!mobileMenuOpen); }}
+            <div
+              className="logo-container header-logo"
+              onClick={() => navigate('/network')}
+              style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}
+              title="Go to Network Map"
             >
-              {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
-            </button>
+              <div className="logo-glow-dot" />
+              <span className="logo-text">COMMUNITY</span>
+            </div>
+            {!isNoSidebarPage && (
+              <button
+                className="mobile-menu-toggle"
+                onClick={(e) => { e.stopPropagation(); setMobileMenuOpen(!mobileMenuOpen); }}
+              >
+                {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+              </button>
+            )}
             <h2>
               {location.pathname === '/dashboard' && 'Core Console'}
               {location.pathname === '/community-map' && ''}

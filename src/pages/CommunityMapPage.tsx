@@ -334,7 +334,7 @@ export const CommunityMapPage: React.FC = () => {
   }, []);
 
   // ── Zoom handlers ──
-  const zoomIn  = useCallback(() => setZoom(z => Math.min(z + 1, MAX_ZOOM)), []);
+  const zoomIn = useCallback(() => setZoom(z => Math.min(z + 1, MAX_ZOOM)), []);
   const zoomOut = useCallback(() => setZoom(z => Math.max(z - 1, MIN_ZOOM)), []);
 
   // ── Scroll-wheel zoom (centered on cursor) ──

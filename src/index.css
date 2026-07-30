@@ -586,12 +586,12 @@ a {
 
 @media (max-width: 600px) {
   .create-community-btn {
-    padding: 16px 16px !important;
-    border-radius: 50% !important;
+    /* padding: 16px 16px !important;
+    border-radius: 50% !important; */
 
     svg {
-      height: 36px;
-      width: 36px;
+      height: 24px;
+      width: 24px;
     }
   }
 

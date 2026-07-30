@@ -55,21 +55,21 @@ export const NetworkBackground: React.FC = () => {
 
     const packets: Packet[] = [];
     connections.forEach((conn) => {
-      // Spawn 3 data packet bubbles per connection for a rich stream
-      for (let k = 0; k < 3; k++) {
+      // Spawn 6 bright glowing data packet bubbles per connection for a rich stream
+      for (let k = 0; k < 6; k++) {
         packets.push({
           fromIdx: conn.from,
           toIdx: conn.to,
           progress: Math.random(),
-          speed: Math.random() * 0.003 + 0.0015,
-          size: Math.random() * 2.5 + 1.2,
+          speed: Math.random() * 0.0035 + 0.002,
+          size: Math.random() * 4 + 3, // Larger bubble size (3px - 7px)
           color: hubs[conn.from].color,
-          delay: Math.random() * 150,
+          delay: Math.random() * 120,
         });
       }
     });
 
-    // Floating background particles
+    // Floating background particles (ambient glowing bubbles)
     class AmbientNode {
       x: number;
       y: number;
@@ -77,14 +77,17 @@ export const NetworkBackground: React.FC = () => {
       vy: number;
       radius: number;
       alpha: number;
+      color: string;
 
       constructor() {
         this.x = Math.random() * width;
         this.y = Math.random() * height;
-        this.vx = (Math.random() - 0.5) * 0.15;
-        this.vy = (Math.random() - 0.5) * 0.15;
-        this.radius = Math.random() * 1.5 + 0.5;
-        this.alpha = Math.random() * 0.4 + 0.1;
+        this.vx = (Math.random() - 0.5) * 0.3;
+        this.vy = (Math.random() - 0.5) * 0.3;
+        this.radius = Math.random() * 4 + 2; // Bigger bubbles (2px - 6px)
+        this.alpha = Math.random() * 0.5 + 0.35; // Brighter opacity
+        const palette = ['rgba(6, 182, 212,', 'rgba(168, 85, 247,', 'rgba(59, 130, 246,', 'rgba(236, 72, 153,'];
+        this.color = palette[Math.floor(Math.random() * palette.length)];
       }
 
       update() {
@@ -98,15 +101,21 @@ export const NetworkBackground: React.FC = () => {
         if (!ctx) return;
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-        ctx.fillStyle = isLight
-          ? `rgba(75, 85, 99, ${this.alpha})`
-          : `rgba(6, 182, 212, ${this.alpha})`;
+        const fillCol = isLight
+          ? `rgba(75, 85, 99, ${this.alpha * 0.6})`
+          : `${this.color} ${this.alpha})`;
+        ctx.fillStyle = fillCol;
+        if (!isLight) {
+          ctx.shadowBlur = 10;
+          ctx.shadowColor = fillCol;
+        }
         ctx.fill();
+        ctx.shadowBlur = 0;
       }
     }
 
     const ambients: AmbientNode[] = [];
-    for (let i = 0; i < 75; i++) {
+    for (let i = 0; i < 120; i++) {
       ambients.push(new AmbientNode());
     }
 
@@ -185,8 +194,8 @@ export const NetworkBackground: React.FC = () => {
         ctx.beginPath();
         ctx.moveTo(start.x, start.y);
         ctx.bezierCurveTo(p1.x, p1.y, p2.x, p2.y, end.x, end.y);
-        ctx.strokeStyle = isLight ? 'rgba(100, 116, 139, 0.16)' : 'rgba(6, 182, 212, 0.06)';
-        ctx.lineWidth = 1;
+        ctx.strokeStyle = isLight ? 'rgba(100, 116, 139, 0.25)' : 'rgba(6, 182, 212, 0.18)';
+        ctx.lineWidth = 1.5;
         ctx.stroke();
       });
 
@@ -200,8 +209,8 @@ export const NetworkBackground: React.FC = () => {
         p.progress += p.speed;
         if (p.progress >= 1) {
           p.progress = 0;
-          p.delay = Math.random() * 120;
-          p.speed = Math.random() * 0.003 + 0.0015;
+          p.delay = Math.random() * 90;
+          p.speed = Math.random() * 0.0035 + 0.002;
         }
 
         const start = absHubs[p.fromIdx];
@@ -209,18 +218,18 @@ export const NetworkBackground: React.FC = () => {
         const { p1, p2 } = getBezierControlPoints(start, end);
         const pt = getBezierPoint(start, p1, p2, end, p.progress);
 
-        // Render glowing packet
-        const alpha = isLight ? '0.75' : '0.8';
+        // Render glowing packet bubble
+        const alpha = isLight ? '0.85' : '0.95';
         const particleColor = `${p.color} ${alpha})`;
 
         ctx.beginPath();
         ctx.arc(pt.x, pt.y, p.size, 0, Math.PI * 2);
         ctx.fillStyle = particleColor;
         if (isLight) {
-          ctx.shadowBlur = 4;
-          ctx.shadowColor = 'rgba(255, 255, 255, 0.8)';
+          ctx.shadowBlur = 6;
+          ctx.shadowColor = 'rgba(255, 255, 255, 0.9)';
         } else {
-          ctx.shadowBlur = 8;
+          ctx.shadowBlur = 14;
           ctx.shadowColor = particleColor;
         }
         ctx.fill();
@@ -232,30 +241,30 @@ export const NetworkBackground: React.FC = () => {
       absHubs.forEach((h) => {
         // Core hub dot
         ctx.beginPath();
-        ctx.arc(h.x, h.y, 3.5, 0, Math.PI * 2);
-        ctx.fillStyle = isLight ? 'rgba(71, 85, 105, 0.9)' : 'rgba(6, 182, 212, 0.8)';
+        ctx.arc(h.x, h.y, 4.5, 0, Math.PI * 2);
+        ctx.fillStyle = isLight ? 'rgba(71, 85, 105, 0.95)' : 'rgba(6, 182, 212, 0.95)';
         ctx.fill();
 
         // Pulsing Ring 1
-        const r1 = (pulseTime * 20) % 25;
-        const a1 = (1 - r1 / 25) * 0.35;
+        const r1 = (pulseTime * 24) % 30;
+        const a1 = (1 - r1 / 30) * 0.5;
         ctx.beginPath();
         ctx.arc(h.x, h.y, r1, 0, Math.PI * 2);
         ctx.strokeStyle = isLight
           ? `${h.color} ${(a1 * 0.7).toFixed(3)})`
           : `rgba(6, 182, 212, ${a1.toFixed(3)})`;
-        ctx.lineWidth = 1;
+        ctx.lineWidth = 1.5;
         ctx.stroke();
 
         // Pulsing Ring 2
-        const r2 = ((pulseTime * 20) + 12) % 25;
-        const a2 = (1 - r2 / 25) * 0.35;
+        const r2 = ((pulseTime * 24) + 15) % 30;
+        const a2 = (1 - r2 / 30) * 0.5;
         ctx.beginPath();
         ctx.arc(h.x, h.y, r2, 0, Math.PI * 2);
         ctx.strokeStyle = isLight
           ? `rgba(168, 85, 247, ${(a2 * 0.7).toFixed(3)})`
           : `rgba(168, 85, 247, ${a2.toFixed(3)})`;
-        ctx.lineWidth = 0.8;
+        ctx.lineWidth = 1.2;
         ctx.stroke();
       });
     };

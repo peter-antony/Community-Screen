@@ -17,6 +17,7 @@ import {
   MessageCircleMore
 } from 'lucide-react';
 import './CommunityChatPage.css';
+import { supabase } from '../supabaseClient';
 
 export const CommunityChatPage: React.FC = () => {
   const { user } = useAuth();
@@ -34,9 +35,33 @@ export const CommunityChatPage: React.FC = () => {
   const [activeCommunityId, setActiveCommunityId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [inputText, setInputText] = useState('');
+  const [mapCommunities, setMapCommunities] = useState<any[]>([]);
   const chatScrollRef = useRef<HTMLDivElement | null>(null);
 
-  const communityList = communities || [];
+  // Fetch community_map table data from Supabase
+  useEffect(() => {
+    const fetchMapCommunities = async () => {
+      try {
+        const { data, error } = await supabase.from('community_map').select('*');
+        if (!error && data && data.length > 0) {
+          const mapped = data.map((c) => ({
+            id: String(c.id),
+            name: c.name || 'Community',
+            theme: c.category || 'tech',
+            image: c.image || 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=320&q=85',
+            status: 'active',
+            attendees: c.attendees ? (typeof c.attendees === 'string' ? JSON.parse(c.attendees) : c.attendees) : [],
+          }));
+          setMapCommunities(mapped);
+        }
+      } catch (err) {
+        console.error('Error loading community_map in chat:', err);
+      }
+    };
+    fetchMapCommunities();
+  }, []);
+
+  const communityList = mapCommunities.length > 0 ? mapCommunities : (communities || []);
 
   // Sync active community with URL parameter & screen width (Mobile 2-step vs Desktop split view)
   useEffect(() => {
@@ -69,8 +94,12 @@ export const CommunityChatPage: React.FC = () => {
   };
 
   const handleBackToList = () => {
-    setActiveCommunityId(null);
-    navigate('/community-chat', { replace: true });
+    if (activeCommunityId && window.innerWidth < 768) {
+      setActiveCommunityId(null);
+      navigate('/community-chat', { replace: true });
+    } else {
+      navigate('/network');
+    }
   };
 
   const activeCommunity = communityList.find((c) => c.id === activeCommunityId);
@@ -105,8 +134,16 @@ export const CommunityChatPage: React.FC = () => {
           <div className="community-title-row">
             {/* <MessageCircleMore size={24} className="text-cyan" /> */}
             <h1>Messages</h1>
+            <span className="community-channel-count-badge">{communityList.length} Communities</span>
           </div>
-          <span className="community-channel-count-badge">{communityList.length} Communities</span>
+          <button
+            className="community-back-to-network-btn"
+            onClick={() => navigate('/network')}
+            title="Back to Network Map"
+          >
+            <ArrowLeft size={16} />
+            <span>Back</span>
+          </button>
         </div>
       </div>
 
