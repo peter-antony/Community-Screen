@@ -731,7 +731,10 @@ const NetworkMap: React.FC<NetworkMapProps> = ({ communityGroups, onRefreshCommu
         >
           <button
             className="nm-cat-trigger-btn"
-            onClick={() => setCatMenuOpen(open => !open)}
+            onClick={(e) => {
+              e.stopPropagation();
+              setCatMenuOpen(open => !open);
+            }}
             aria-label="Filter by Category"
           >
             <span className="nm-cat-trigger-emoji">{selectedCatObj.emoji}</span>
@@ -745,7 +748,8 @@ const NetworkMap: React.FC<NetworkMapProps> = ({ communityGroups, onRefreshCommu
                 <button
                   key={cat.id}
                   className={`nm-cat-menu-item ${category === cat.id ? 'active' : ''}`}
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.stopPropagation();
                     setCategory(cat.id);
                     setCatMenuOpen(false);
                   }}
