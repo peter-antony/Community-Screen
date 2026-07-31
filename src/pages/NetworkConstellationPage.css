@@ -2733,10 +2733,11 @@
   mix-blend-mode: screen;
 }
 
-/* Light mode tile styling */
+/* Light mode tile styling — sleek desaturated light theme filter */
 .light-theme .nm-tile {
-  filter: none;
-  opacity: 0.95;
+  filter: brightness(105%) contrast(88%) saturate(20%) hue-rotate(195deg);
+  opacity: 0.88;
+  mix-blend-mode: multiply;
 }
 
 .nm-dragging {
@@ -2744,8 +2745,13 @@
 }
 
 .nm-root {
+  background: #040914;
   cursor: grab;
   user-select: none;
+}
+
+.light-theme .nm-root {
+  background: #f1f5f9;
 }
 
 /* ── CONTROLS (bottom-right: +, -, zoom level, recenter) ── */
