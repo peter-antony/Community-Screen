@@ -146,6 +146,8 @@ interface MapCommunity {
   glowColor: string;
   attendees?: CommunityAttendee[];
   joined?: boolean;
+  dateStr?: string;
+  timeStr?: string;
 }
 
 interface MapTile {
@@ -212,16 +214,17 @@ function mapToPixel(
 
 const MAP_CATEGORIES = [
   { id: 'all', label: 'All', emoji: '🗺️' },
-  { id: 'yoga', label: 'Yoga', emoji: '🧘' },
   { id: 'tech', label: 'Tech', emoji: '💻' },
-  { id: 'social', label: 'Social', emoji: '🎉' },
+  { id: 'yoga', label: 'Yoga', emoji: '🧘' },
   { id: 'hiking', label: 'Hiking', emoji: '🥾' },
   { id: 'books', label: 'Books', emoji: '📚' },
-  { id: 'walking', label: 'Walk', emoji: '🚶' },
-  { id: 'cycling', label: 'Cycling', emoji: '🚴' },
-  { id: 'drinks', label: 'Drinks', emoji: '🍹' },
   { id: 'meditation', label: 'Meditate', emoji: '🪷' },
   { id: 'art', label: 'Art', emoji: '🎨' },
+  ...EVENT_CATEGORY_OPTIONS.map(c => ({
+    id: c.id,
+    label: c.label.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
+    emoji: c.emoji
+  })).filter(c => !['tech', 'yoga', 'hiking', 'books', 'meditation', 'art'].includes(c.id))
 ];
 
 interface NetworkMapProps {
@@ -311,6 +314,8 @@ const NetworkMap: React.FC<NetworkMapProps> = ({ communityGroups, onRefreshCommu
     emoji: '💻',
     description: '',
     schedule: '',
+    dateStr: '',
+    timeStr: '',
     distance: '1.5 km',
     image: '',
     tags: '',
@@ -518,6 +523,8 @@ const NetworkMap: React.FC<NetworkMapProps> = ({ communityGroups, onRefreshCommu
     const targetLng = selectedLocation ? selectedLocation.lng : (createForm.lng || MAP_BANGALORE.lng);
     const targetLocName = selectedLocation ? selectedLocation.name : (locationInput.trim() || createForm.locationName || 'Bengaluru');
 
+    const formattedSchedule = [createForm.dateStr, createForm.timeStr].filter(Boolean).join(' · ') || createForm.schedule || 'Weekly Meetings';
+
     const tagsText = createForm.tags.trim() || 'Networking';
     const tagsArray = tagsText.split(',').map(t => t.trim()).filter(Boolean);
 
@@ -533,7 +540,9 @@ const NetworkMap: React.FC<NetworkMapProps> = ({ communityGroups, onRefreshCommu
       bgColor: palette.bgColor,
       glowColor: palette.glowColor,
       members: 1,
-      schedule: createForm.schedule || 'Weekly Meetings',
+      schedule: formattedSchedule,
+      dateStr: createForm.dateStr,
+      timeStr: createForm.timeStr,
       distance: createForm.distance || '1.2 km',
       image: createForm.image || 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=320&q=85',
       hostName: 'You',
@@ -547,7 +556,7 @@ const NetworkMap: React.FC<NetworkMapProps> = ({ communityGroups, onRefreshCommu
 
     // Persist to Supabase community_map table if available
     try {
-      await supabase.from('community_map').insert([
+      await supabase.from('community_map').insert(
         {
           id: newId,
           name: newObj.name,
@@ -560,7 +569,9 @@ const NetworkMap: React.FC<NetworkMapProps> = ({ communityGroups, onRefreshCommu
           bg_color: newObj.bgColor,
           glow_color: newObj.glowColor,
           members: 1,
-          schedule: newObj.schedule,
+          schedule: formattedSchedule,
+          date_str: createForm.dateStr,
+          time_str: createForm.timeStr,
           distance: newObj.distance,
           image: newObj.image,
           host_name: 'You',
@@ -570,7 +581,7 @@ const NetworkMap: React.FC<NetworkMapProps> = ({ communityGroups, onRefreshCommu
           attendees: JSON.stringify(newObj.attendees),
           joined: true,
         }
-      ]);
+      );
 
       if (onRefreshCommunities) {
         await onRefreshCommunities();
@@ -877,6 +888,8 @@ const NetworkMap: React.FC<NetworkMapProps> = ({ communityGroups, onRefreshCommu
               emoji: '💻',
               description: '',
               schedule: '',
+              dateStr: '',
+              timeStr: '',
               distance: '1.5 km',
               image: '',
               tags: '',
@@ -1457,16 +1470,28 @@ const NetworkMap: React.FC<NetworkMapProps> = ({ communityGroups, onRefreshCommu
                     </div>
                   </div>
 
-                  {/* Schedule */}
-                  <div className="nm-form-group">
-                    <label className="nm-form-label">Schedule / Meeting Time</label>
-                    <input
-                      type="text"
-                      className="nm-form-inp"
-                      placeholder="e.g. Every Friday · 7:00 PM"
-                      value={createForm.schedule}
-                      onChange={e => setCreateForm({ ...createForm, schedule: e.target.value })}
-                    />
+                  {/* Date & Time Row */}
+                  <div className="nm-form-row">
+                    <div className="nm-form-group flex-1">
+                      <label className="nm-form-label">Date</label>
+                      <input
+                        type="text"
+                        className="nm-form-inp"
+                        placeholder="e.g. Every Friday or Aug 8"
+                        value={createForm.dateStr}
+                        onChange={e => setCreateForm({ ...createForm, dateStr: e.target.value, schedule: [e.target.value, createForm.timeStr].filter(Boolean).join(' · ') })}
+                      />
+                    </div>
+                    <div className="nm-form-group flex-1">
+                      <label className="nm-form-label">Time</label>
+                      <input
+                        type="text"
+                        className="nm-form-inp"
+                        placeholder="e.g. 7:00 PM"
+                        value={createForm.timeStr}
+                        onChange={e => setCreateForm({ ...createForm, timeStr: e.target.value, schedule: [createForm.dateStr, e.target.value].filter(Boolean).join(' · ') })}
+                      />
+                    </div>
                   </div>
 
                   {/* Description */}
@@ -1812,6 +1837,10 @@ export const NetworkConstellationPage: React.FC = () => {
             console.error('Error parsing attendees:', e);
           }
         }
+        const cDateStr = g.date_str || g.dateStr || '';
+        const cTimeStr = g.time_str || g.timeStr || '';
+        const cSchedule = g.schedule || ([cDateStr, cTimeStr].filter(Boolean).join(' · ')) || '';
+
         return {
           id: String(g.id),
           name: g.name || '',
@@ -1824,7 +1853,9 @@ export const NetworkConstellationPage: React.FC = () => {
           bgColor: palette.bgColor,
           glowColor: palette.glowColor,
           members: Number(g.members || parsedAttendees.length),
-          schedule: g.schedule || '',
+          schedule: cSchedule,
+          dateStr: cDateStr,
+          timeStr: cTimeStr,
           distance: g.distance || '',
           image: g.image || 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&w=320&q=85',
           hostName: g.host_name || g.hostName || '',

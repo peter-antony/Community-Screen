@@ -176,10 +176,10 @@ export const EventDetailsPage: React.FC = () => {
             <span className="profile-role-title">Hosted by {hostName}</span>
 
             <div className="profile-meta-row">
-              <div className="meta-item">
+              {/* <div className="meta-item">
                 <Clock size={14} />
                 <span>{timeStr}</span>
-              </div>
+              </div> */}
               <div className="meta-item">
                 <MapPin size={14} />
                 <span>{locationStr}</span>
@@ -201,8 +201,8 @@ export const EventDetailsPage: React.FC = () => {
           </div>
           <div className="count-divider" />
           <div className="count-unit">
-            <span className="count-val">FREE</span>
-            <span className="count-lbl">ENTRY</span>
+            <span className="count-val">{timeStr}</span>
+            <span className="count-lbl">Event Time</span>
           </div>
         </div>
       </section>
