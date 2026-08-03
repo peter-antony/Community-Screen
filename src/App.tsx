@@ -19,6 +19,7 @@ import { CommunityMapPage } from './pages/CommunityMapPage';
 import { CommunityDetailsPage } from './pages/CommunityDetailsPage';
 import SignupPage from './pages/SignupPage';
 import { CommunityChatPage } from './pages/CommunityChatPage';
+import { EventDetailsPage } from './pages/EventDetailsPage';
 
 // Security Route wrappers
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -156,6 +157,16 @@ const AppContent: React.FC = () => {
           <ProtectedRoute>
             <AppLayout>
               <CommunityDetailsPage />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/event-details/:id"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <EventDetailsPage />
             </AppLayout>
           </ProtectedRoute>
         }

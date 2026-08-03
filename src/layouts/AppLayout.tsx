@@ -37,7 +37,8 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
   const isNoSidebarPage =
     location.pathname === '/community-chat' ||
     location.pathname.startsWith('/profile') ||
-    location.pathname.startsWith('/community-details');
+    location.pathname.startsWith('/community-details') ||
+    location.pathname.startsWith('/event-details');
 
   const menuItems = [
     { path: '/network', label: 'Network', icon: Network },
@@ -164,7 +165,7 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
             >
               {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
             </button>
-            <div className="user-pill" onClick={() => navigate(`/profile/${user.id}`)}>
+            <div className="user-pill" onClick={() => navigate(`/profile/${user.name}`)}>
               <img src={user.avatar} alt={user.name} className="header-avatar" />
               <span className='desktop-controls'>{user.name}</span>
             </div>

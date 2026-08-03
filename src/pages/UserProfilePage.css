@@ -85,7 +85,7 @@
 
 /* Profile Header Card */
 .profile-header-card {
-  padding: 20px 32px 0px;
+  padding: 20px 32px 24px;
   margin-top: -80px;
   position: relative;
   z-index: 2;

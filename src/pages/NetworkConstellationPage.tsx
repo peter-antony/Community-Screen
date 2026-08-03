@@ -145,6 +145,7 @@ interface MapCommunity {
   description: string; tags: string[];
   glowColor: string;
   attendees?: CommunityAttendee[];
+  joined?: boolean;
 }
 
 interface MapTile {
@@ -233,6 +234,7 @@ interface NetworkMapProps {
 // ─────────────────────────────────────────────
 const NetworkMap: React.FC<NetworkMapProps> = ({ communityGroups, onRefreshCommunities }) => {
   const navigate = useNavigate();
+  const { user: authUser } = useAuth();
   const [selected, setSelected] = useState<MapCommunity | null>(null);
   const [hovered, setHovered] = useState<string | null>(null);
   const [category, setCategory] = useState('all');
@@ -244,6 +246,63 @@ const NetworkMap: React.FC<NetworkMapProps> = ({ communityGroups, onRefreshCommu
   const [addMemberCommunity, setAddMemberCommunity] = useState<MapCommunity | null>(null);
   const [inviteContact, setInviteContact] = useState('');
   const [inviteSuccess, setInviteSuccess] = useState(false);
+  const [joiningId, setJoiningId] = useState<string | null>(null);
+
+  const handleJoinCommunity = async (community: MapCommunity) => {
+    if (community.joined || joiningId === community.id) return;
+    setJoiningId(community.id);
+
+    try {
+      const userMember: CommunityAttendee = {
+        name: authUser?.name || 'You',
+        avatar: authUser?.avatar || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=60&q=80',
+        role: 'Member',
+      };
+
+      const currentAttendees = community.attendees ? [...community.attendees] : [];
+      const alreadyInAttendees = currentAttendees.some(a => a.name === userMember.name);
+      const updatedAttendees = alreadyInAttendees ? currentAttendees : [...currentAttendees, userMember];
+      const updatedMembersCount = (community.members || 0) + (alreadyInAttendees ? 0 : 1);
+
+      // Update flag as true for joined column in community_map table in API/Supabase
+      const { error } = await supabase
+        .from('community_map')
+        .update({
+          joined: true,
+          members: updatedMembersCount,
+          attendees: JSON.stringify(updatedAttendees)
+        })
+        .eq('id', community.id);
+
+      if (error) {
+        console.error('Error updating community_map joined status:', error);
+      }
+
+      const updatedCommunity: MapCommunity = {
+        ...community,
+        joined: true,
+        members: updatedMembersCount,
+        attendees: updatedAttendees,
+      };
+
+      // Update currently selected card
+      setSelected(updatedCommunity);
+
+      // Update members popup modal if currently open for this community
+      if (membersModalCommunity && membersModalCommunity.id === community.id) {
+        setMembersModalCommunity(updatedCommunity);
+      }
+
+      // Re-fetch community list from API if callback provided
+      if (onRefreshCommunities) {
+        await onRefreshCommunities();
+      }
+    } catch (err) {
+      console.error('Error joining community:', err);
+    } finally {
+      setJoiningId(null);
+    }
+  };
 
   const [showCreateCommunityModal, setShowCreateCommunityModal] = useState(false);
   const [createForm, setCreateForm] = useState({
@@ -509,6 +568,7 @@ const NetworkMap: React.FC<NetworkMapProps> = ({ communityGroups, onRefreshCommu
           description: newObj.description,
           tags: tagsText,
           attendees: JSON.stringify(newObj.attendees),
+          joined: true,
         }
       ]);
 
@@ -710,8 +770,27 @@ const NetworkMap: React.FC<NetworkMapProps> = ({ communityGroups, onRefreshCommu
                     <span>Hosted by <strong>{pin.hostName}</strong></span>
                     <Star size={11} style={{ color: pin.color, marginLeft: 'auto' }} />
                   </div>
-                  <button className="nm-popup-btn" style={{ background: `linear-gradient(135deg, ${pin.color}, ${pin.color}bb)`, boxShadow: `0 4px 16px ${pin.glowColor}` }}>
-                    Join Community →
+                  <button
+                    className={`nm-popup-btn ${pin.joined ? 'joined' : ''}`}
+                    disabled={pin.joined || joiningId === pin.id}
+                    style={pin.joined ? {
+                      background: 'rgba(16, 185, 129, 0.18)',
+                      color: '#10b981',
+                      border: '1px solid rgba(16, 185, 129, 0.4)',
+                      boxShadow: '0 0 12px rgba(16, 185, 129, 0.2)',
+                      cursor: 'default'
+                    } : {
+                      background: `linear-gradient(135deg, ${pin.color}, ${pin.color}bb)`,
+                      boxShadow: `0 4px 16px ${pin.glowColor}`
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (!pin.joined) {
+                        handleJoinCommunity(pin);
+                      }
+                    }}
+                  >
+                    {pin.joined ? 'Joined!' : joiningId === pin.id ? 'Joining...' : 'Join Community →'}
                   </button>
                 </div>
               </div>
@@ -1032,7 +1111,21 @@ const NetworkMap: React.FC<NetworkMapProps> = ({ communityGroups, onRefreshCommu
                 }
 
                 return filteredEvents.map((evt) => (
-                  <div key={evt.id} className="nm-event-card-item">
+                  <div
+                    key={evt.id}
+                    className="nm-event-card-item"
+                    onClick={() => {
+                      setEventsModalCommunity(null);
+                      navigate(`/event-details/${evt.id}`, {
+                        state: {
+                          event: evt,
+                          community: eventsModalCommunity
+                        }
+                      });
+                    }}
+                    style={{ cursor: 'pointer' }}
+                    title="Click to view full event details"
+                  >
                     {evt.image && (
                       <img src={evt.image} alt={evt.title} className="nm-event-card-img" />
                     )}
@@ -1739,6 +1832,7 @@ export const NetworkConstellationPage: React.FC = () => {
           description: g.description || '',
           tags: g.tags || '',
           attendees: parsedAttendees,
+          joined: g.joined === true || g.joined === 'true' || g.joined === 1,
         };
       });
 

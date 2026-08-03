@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCommunication } from '../context/CommunicationContext';
 import {
   MapPin,
   Briefcase,
-  MessageSquare,
   Phone,
   Video,
   UserCheck,
@@ -13,13 +12,13 @@ import {
   Edit3,
   Check,
   Cpu,
-  Bookmark,
-  ExternalLink,
   ArrowLeft,
-  MessageCircleCheck,
-  MessageCircleCode,
-  MessageCircleMore
+  MessageCircleMore,
+  Users,
+  Sparkles
 } from 'lucide-react';
+import type { User } from '../types';
+import { supabase } from '../supabaseClient';
 import './UserProfilePage.css';
 
 export const UserProfilePage: React.FC = () => {
@@ -30,36 +29,153 @@ export const UserProfilePage: React.FC = () => {
 
   const isOwnProfile = id === authUser?.id || !id;
 
-  // Find target user
-  const profileUser = isOwnProfile
-    ? authUser
-    : users.find((u) => u.id === id);
+  const [profileUser, setProfileUser] = useState<User | null>(
+    isOwnProfile ? authUser : (users.find((u) => u.id === id) || null)
+  );
+  const [userCommunities, setUserCommunities] = useState<string[]>(['Koramangala Tech Club', 'Bangalore Sports Hub']);
+  const [loading, setLoading] = useState<boolean>(false);
 
-  const [activeTab, setActiveTab] = useState<'about' | 'projects'>('about');
   const [isEditing, setIsEditing] = useState(false);
-  const [editName, setEditName] = useState(profileUser?.name || '');
-  const [editRole, setEditRole] = useState(profileUser?.role || '');
-  const [editBio, setEditBio] = useState(profileUser?.bio || '');
-  const [editLocation, setEditLocation] = useState(profileUser?.location || '');
+  const [editName, setEditName] = useState('');
+  const [editRole, setEditRole] = useState('');
+  const [editBio, setEditBio] = useState('');
+  const [editLocation, setEditLocation] = useState('');
+
+  useEffect(() => {
+    loadUserData();
+  }, [id, authUser]);
+
+  const loadUserData = async () => {
+    const targetId = id || authUser?.id;
+    if (!targetId) return;
+
+    try {
+      setLoading(true);
+      // Fetch user profile data from Supabase users table
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', targetId)
+        .single();
+
+      if (!error && data) {
+        const mappedUser: User = {
+          id: String(data.id),
+          name: data.name || 'User',
+          username: data.username || 'user',
+          role: data.role || 'Community Member',
+          location: data.location || 'Bengaluru, India',
+          bio: data.bio || 'Passionate community member interested in tech, networking and events.',
+          avatar: data.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
+          coverImage: data.cover_image || data.coverImage || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80',
+          status: data.status || 'online',
+          followersCount: Number(data.followers_count || 42),
+          followingCount: Number(data.following_count || 28),
+          skills: Array.isArray(data.skills)
+            ? data.skills
+            : (typeof data.skills === 'string' ? JSON.parse(data.skills) : ['Networking', 'Leadership', 'React', 'Design']),
+          isFollowing: Boolean(data.is_following || data.isFollowing || false),
+        };
+
+        setProfileUser(mappedUser);
+        setEditName(mappedUser.name);
+        setEditRole(mappedUser.role);
+        setEditBio(mappedUser.bio);
+        setEditLocation(mappedUser.location);
+
+        if (data.communities) {
+          try {
+            const parsed = typeof data.communities === 'string' ? JSON.parse(data.communities) : data.communities;
+            if (Array.isArray(parsed)) {
+              setUserCommunities(parsed);
+            }
+          } catch (e) { }
+        }
+      } else {
+        // Fallback to authUser or local context
+        const localFound = isOwnProfile ? authUser : users.find((u) => u.id === targetId);
+        if (localFound) {
+          setProfileUser(localFound);
+          setEditName(localFound.name);
+          setEditRole(localFound.role);
+          setEditBio(localFound.bio);
+          setEditLocation(localFound.location);
+        }
+      }
+
+      // Query community_map to bind joined communities as badges
+      const { data: mapData } = await supabase.from('community_map').select('*');
+      if (mapData && mapData.length > 0) {
+        const targetName = (data?.name || authUser?.name || '').toLowerCase();
+        const matched: string[] = [];
+
+        mapData.forEach((c: any) => {
+          let memberOfComm = false;
+          if (c.host_name && targetName && c.host_name.toLowerCase().includes(targetName)) {
+            memberOfComm = true;
+          }
+          if (c.attendees) {
+            try {
+              const attendeesList = typeof c.attendees === 'string' ? JSON.parse(c.attendees) : c.attendees;
+              if (Array.isArray(attendeesList) && attendeesList.some((a: any) => a.name && targetName && a.name.toLowerCase().includes(targetName))) {
+                memberOfComm = true;
+              }
+            } catch (e) { }
+          }
+          if (memberOfComm && c.name && !matched.includes(c.name)) {
+            matched.push(c.name);
+          }
+        });
+
+        if (matched.length > 0) {
+          setUserCommunities(prev => Array.from(new Set([...prev, ...matched])));
+        }
+      }
+    } catch (err) {
+      console.error('Error loading user profile:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (!profileUser) {
     return (
       <div className="profile-error glass-panel">
-        <h3>Pioneer Profile Not Found</h3>
-        <button className="btn btn-primary" onClick={() => navigate('/dashboard')}>
-          Return to Dashboard
+        <h3>User Profile Not Found</h3>
+        <button className="btn btn-primary" onClick={() => navigate('/network')}>
+          Return to Network
         </button>
       </div>
     );
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     updateProfile({
       name: editName,
       role: editRole,
       bio: editBio,
       location: editLocation,
     });
+
+    setProfileUser(prev => prev ? {
+      ...prev,
+      name: editName,
+      role: editRole,
+      bio: editBio,
+      location: editLocation
+    } : null);
+
+    try {
+      await supabase.from('users').update({
+        name: editName,
+        role: editRole,
+        bio: editBio,
+        location: editLocation
+      }).eq('id', profileUser.id);
+    } catch (err) {
+      console.error('Error saving user profile to database:', err);
+    }
+
     setIsEditing(false);
   };
 
@@ -73,27 +189,6 @@ export const UserProfilePage: React.FC = () => {
     navigate('/call');
   };
 
-  const mockProjects = [
-    {
-      title: 'Constellation WebGL Engine',
-      desc: 'High-performance particle renderer optimized for immersive browser experiences, building 3D meshes using fragment shaders.',
-      tags: ['Three.js', 'WebGL', 'GLSL'],
-      url: 'https://github.com'
-    },
-    {
-      title: 'Obsidian UI Kit',
-      desc: 'A futuristic glassmorphic UI kit crafted with vanilla CSS custom properties and standard accessible semantic components.',
-      tags: ['CSS Modules', 'React', 'Framer'],
-      url: 'https://figma.com'
-    },
-    {
-      title: 'Quantum Synapse Broker',
-      desc: 'Simulated decentralized state synchronization router for multi-agent network overlays.',
-      tags: ['TypeScript', 'RxJS', 'WebSockets'],
-      url: 'https://npm.org'
-    }
-  ];
-
   return (
     <div className="user-profile-page">
       {/* Cover Banner */}
@@ -103,9 +198,9 @@ export const UserProfilePage: React.FC = () => {
       >
         <button
           className="cover-back-btn"
-          onClick={() => navigate(-1)}
-          title="Go Back"
-          aria-label="Go Back"
+          onClick={() => navigate('/network')}
+          title="Back to Network Page"
+          aria-label="Back to Network Page"
         >
           <ArrowLeft size={20} />
         </button>
@@ -157,7 +252,7 @@ export const UserProfilePage: React.FC = () => {
                     onChange={(e) => setEditLocation(e.target.value)}
                   />
                 ) : (
-                  <span>{profileUser.location}</span>
+                  <span>{profileUser.location || 'Bengaluru, India'}</span>
                 )}
               </div>
 
@@ -231,81 +326,57 @@ export const UserProfilePage: React.FC = () => {
           </div>
           <div className="count-divider" />
           <div className="count-unit">
-            <span className="count-val">{profileUser.skills?.length || 5}</span>
-            <span className="count-lbl">CAPABILITIES</span>
+            <span className="count-val">{userCommunities.length}</span>
+            <span className="count-lbl">COMMUNITIES</span>
           </div>
         </div>
       </section>
 
-      {/* Profile Tabs Section */}
+      {/* Profile Details Content Section */}
       <section className="profile-tabs-section">
-        <div className="tabs-header-bar">
-          <button
-            className={`tab-anchor ${activeTab === 'about' ? 'active' : ''}`}
-            onClick={() => setActiveTab('about')}
-          >
-            Capabilities & Bio
-          </button>
-          <button
-            className={`tab-anchor ${activeTab === 'projects' ? 'active' : ''}`}
-            onClick={() => setActiveTab('projects')}
-          >
-            Digital Assets (3)
-          </button>
-        </div>
-
         <div className="tab-viewport glass-panel">
-          {activeTab === 'about' ? (
-            <div className="about-tab-content">
-              <div className="profile-bio-box">
-                <h4>QUANTUM BIO</h4>
-                {isEditing ? (
-                  <textarea
-                    className="form-textarea profile-textarea"
-                    value={editBio}
-                    onChange={(e) => setEditBio(e.target.value)}
-                    rows={4}
-                  />
-                ) : (
-                  <p>{profileUser.bio || 'Bringing static screens to life through 3D renders, particle systems, and kinetic typography. Blender lover.'}</p>
-                )}
-              </div>
+          <div className="about-tab-content">
+            {/* Bio Box */}
+            <div className="profile-bio-box">
+              <h4>ABOUT BIO</h4>
+              {isEditing ? (
+                <textarea
+                  className="form-textarea profile-textarea"
+                  value={editBio}
+                  onChange={(e) => setEditBio(e.target.value)}
+                  rows={4}
+                />
+              ) : (
+                <p>{profileUser.bio || 'Active member contributing to community meetups, events, and networking activities.'}</p>
+              )}
+            </div>
 
-              <div className="profile-skills-box">
-                <h4>SYSTEM CAPABILITIES</h4>
-                <div className="skills-cloud">
-                  {profileUser.skills.map((skill, i) => (
-                    <span key={i} className="capability-tag">
-                      <Cpu size={14} className="tag-cap-icon" />
-                      <span>{skill}</span>
-                    </span>
-                  ))}
-                </div>
+            {/* Communities Badges */}
+            <div className="profile-skills-box">
+              <h4>JOINED COMMUNITIES</h4>
+              <div className="skills-cloud">
+                {userCommunities.map((commName, i) => (
+                  <span key={i} className="capability-tag community-badge" style={{ background: 'rgba(59, 130, 246, 0.12)', borderColor: 'rgba(59, 130, 246, 0.3)', color: '#60a5fa' }}>
+                    <Users size={14} className="tag-cap-icon" style={{ color: '#60a5fa' }} />
+                    <span>{commName}</span>
+                  </span>
+                ))}
               </div>
             </div>
-          ) : (
-            <div className="projects-tab-content">
-              {mockProjects.map((proj, idx) => (
-                <div key={idx} className="project-card glass-panel">
-                  <div className="project-header">
-                    <div className="project-title-group">
-                      <Bookmark size={18} className="project-icon" />
-                      <h5>{proj.title}</h5>
-                    </div>
-                    <a href={proj.url} target="_blank" rel="noreferrer" className="project-link">
-                      <ExternalLink size={16} />
-                    </a>
-                  </div>
-                  <p className="project-desc">{proj.desc}</p>
-                  <div className="project-tags-row">
-                    {proj.tags.map((t, i) => (
-                      <span key={i} className="project-tag-pill">{t}</span>
-                    ))}
-                  </div>
-                </div>
-              ))}
+
+            {/* Capabilities & Skills */}
+            <div className="profile-skills-box">
+              <h4>SYSTEM CAPABILITIES & SKILLS</h4>
+              <div className="skills-cloud">
+                {profileUser.skills.map((skill, i) => (
+                  <span key={i} className="capability-tag">
+                    <Cpu size={14} className="tag-cap-icon" />
+                    <span>{skill}</span>
+                  </span>
+                ))}
+              </div>
             </div>
-          )}
+          </div>
         </div>
       </section>
     </div>
