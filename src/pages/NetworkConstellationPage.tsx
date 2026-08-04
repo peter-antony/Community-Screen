@@ -34,7 +34,8 @@ import {
   Calendar,
   Send,
   Mail,
-  CheckCircle2
+  CheckCircle2,
+  Pencil
 } from 'lucide-react';
 import type { User, CommunityItem } from '../types';
 import './NetworkConstellationPage.css';
@@ -331,15 +332,136 @@ const NetworkMap: React.FC<NetworkMapProps> = ({ communityGroups, onRefreshCommu
 
   // Create Event Modal states
   const [showCreateEventModal, setShowCreateEventModal] = useState(false);
+  const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [eventModalCommunity, setEventModalCommunity] = useState<MapCommunity | null>(null);
   const [eventCategoryItem, setEventCategoryItem] = useState<EventCategoryOption>(EVENT_CATEGORY_OPTIONS[0]);
   const [eventTitle, setEventTitle] = useState('');
   const [eventImage, setEventImage] = useState('');
   const [eventDateStr, setEventDateStr] = useState('');
   const [eventTimeStr, setEventTimeStr] = useState('');
-  const [eventLocation, setEventLocation] = useState('');
+  const [eventLocationInput, setEventLocationInput] = useState('');
+  const [eventLocationSuggestions, setEventLocationSuggestions] = useState<LocationOption[]>([]);
+  const [showEventLocationDropdown, setShowEventLocationDropdown] = useState(false);
+  const [eventSelectedLocation, setEventSelectedLocation] = useState<LocationOption | null>(null);
   const [eventDescription, setEventDescription] = useState('');
   const [eventSuccess, setEventSuccess] = useState(false);
+
+  // Auto-clear Create Community form whenever modal opens
+  useEffect(() => {
+    if (showCreateCommunityModal) {
+      setCreateForm({
+        name: '',
+        category: 'tech',
+        emoji: '💻',
+        description: '',
+        schedule: '',
+        dateStr: '',
+        timeStr: '',
+        distance: '1.5 km',
+        image: '',
+        tags: '',
+        locationName: '',
+        lat: null as any,
+        lng: null as any,
+      });
+      setLocationInput('');
+      setSelectedLocation(null);
+      setLocationSuggestions([]);
+      setShowLocationDropdown(false);
+      setCreateSuccess(false);
+    }
+  }, [showCreateCommunityModal]);
+
+  // Auto-clear Create Event form whenever modal opens FOR A NEW EVENT
+  useEffect(() => {
+    if (showCreateEventModal && !editingEventId) {
+      setEventTitle('');
+      setEventCategoryItem(EVENT_CATEGORY_OPTIONS[0]);
+      setEventImage('');
+      setEventDateStr('');
+      setEventTimeStr('');
+      setEventLocationInput('');
+      setEventSelectedLocation(null);
+      setEventLocationSuggestions([]);
+      setShowEventLocationDropdown(false);
+      setEventDescription('');
+      setEventSuccess(false);
+    }
+  }, [showCreateEventModal, editingEventId]);
+
+  const closeCreateEventModal = () => {
+    setShowCreateEventModal(false);
+    setEditingEventId(null);
+    setEventSuccess(false);
+  };
+
+  const openAddEventModal = (targetComm: MapCommunity) => {
+    setEditingEventId(null);
+    setEventsModalCommunity(null);
+    setSelected(null);
+    setEventModalCommunity(targetComm);
+    setEventCategoryItem(EVENT_CATEGORY_OPTIONS[0]);
+    setEventTitle('');
+    setEventImage('');
+    setEventDateStr('');
+    setEventTimeStr('');
+    setEventLocationInput('');
+    setEventSelectedLocation(null);
+    setEventLocationSuggestions([]);
+    setShowEventLocationDropdown(false);
+    setEventDescription('');
+    setEventSuccess(false);
+    setShowCreateEventModal(true);
+  };
+
+  // Open Edit Event Modal & Query Event by ID from Supabase
+  const openEditEventModal = async (eventId: string, fallbackEvt?: any) => {
+    setEditingEventId(eventId);
+    setEventSuccess(false);
+
+    if (fallbackEvt) {
+      const foundCat = EVENT_CATEGORY_OPTIONS.find(c => c.label.toLowerCase() === (fallbackEvt.category || '').toLowerCase()) || EVENT_CATEGORY_OPTIONS[0];
+      setEventTitle(fallbackEvt.title || '');
+      setEventCategoryItem(foundCat);
+      setEventImage(fallbackEvt.image || '');
+      setEventDateStr(fallbackEvt.date_str || fallbackEvt.dateStr || '');
+      setEventTimeStr(fallbackEvt.time_str || fallbackEvt.timeStr || '');
+      setEventLocationInput(fallbackEvt.location || '');
+      if (fallbackEvt.lat && fallbackEvt.lng) {
+        setEventSelectedLocation({ name: fallbackEvt.location || '', lat: Number(fallbackEvt.lat), lng: Number(fallbackEvt.lng), area: 'Bengaluru' });
+      } else {
+        setEventSelectedLocation(null);
+      }
+      setEventDescription(fallbackEvt.description || '');
+    }
+
+    setEventsModalCommunity(null);
+    setShowCreateEventModal(true);
+
+    try {
+      const { data, error } = await supabase
+        .from('events')
+        .select('*')
+        .eq('id', eventId)
+        .single();
+
+      if (!error && data) {
+        const foundCat = EVENT_CATEGORY_OPTIONS.find(c => c.label.toLowerCase() === (data.category || '').toLowerCase()) || EVENT_CATEGORY_OPTIONS[0];
+        setEventTitle(data.title || '');
+        setEventCategoryItem(foundCat);
+        setEventImage(data.image || '');
+        setEventDateStr(data.date_str || data.dateStr || '');
+        setEventTimeStr(data.time_str || data.timeStr || '');
+        setEventLocationInput(data.location || '');
+        if (data.lat && data.lng) {
+          setEventSelectedLocation({ name: data.location || '', lat: Number(data.lat), lng: Number(data.lng), area: 'Bengaluru' });
+        }
+        setEventDescription(data.description || '');
+      }
+    } catch (err) {
+      console.error('Error fetching event record for editing:', err);
+    }
+  };
 
   // Events List Modal states
   const [eventsModalCommunity, setEventsModalCommunity] = useState<MapCommunity | null>(null);
@@ -356,30 +478,7 @@ const NetworkMap: React.FC<NetworkMapProps> = ({ communityGroups, onRefreshCommu
       if (!error && data && data.length > 0) {
         setCommunityEventsList(data);
       } else {
-        setCommunityEventsList([
-          {
-            id: `evt_mock_1`,
-            community_id: communityId,
-            title: `3v3 Community Tournament & Warmup`,
-            category: `sport`,
-            image: `https://images.unsplash.com/photo-1517649763962-0c623266ddc0?w=800&auto=format&fit=crop&q=60`,
-            date_str: `Tomorrow`,
-            time_str: `6:00 PM`,
-            location: `Community Turf Ground`,
-            description: `Quick 3v3 mini tournament with round-robin matches. Winner stays on court!`
-          },
-          {
-            id: `evt_mock_2`,
-            community_id: communityId,
-            title: `Weekly Meetup & Social Gathering`,
-            category: `night out`,
-            image: `https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=800&auto=format&fit=crop&q=60`,
-            date_str: `Saturday`,
-            time_str: `7:30 PM`,
-            location: `Central Social Cafe`,
-            description: `Relax with members, discuss upcoming plans, and enjoy weekend refreshments.`
-          }
-        ]);
+        setCommunityEventsList([]);
       }
     } catch (err) {
       console.error("Error fetching community events:", err);
@@ -600,6 +699,35 @@ const NetworkMap: React.FC<NetworkMapProps> = ({ communityGroups, onRefreshCommu
     e.preventDefault();
     if (!eventTitle.trim()) return;
 
+    const targetLat = eventSelectedLocation ? eventSelectedLocation.lat : (eventModalCommunity?.lat || MAP_BANGALORE.lat);
+    const targetLng = eventSelectedLocation ? eventSelectedLocation.lng : (eventModalCommunity?.lng || MAP_BANGALORE.lng);
+    const targetLocName = eventSelectedLocation ? eventSelectedLocation.name : (eventLocationInput.trim() || eventModalCommunity?.locationName || eventModalCommunity?.name || 'Bengaluru');
+
+    if (editingEventId) {
+      const updatedObj = {
+        title: eventTitle.trim(),
+        category: eventCategoryItem.label,
+        image: eventImage || eventCategoryItem.image,
+        date_str: eventDateStr || 'Upcoming',
+        time_str: eventTimeStr || '7:00 PM',
+        location: targetLocName,
+        lat: targetLat,
+        lng: targetLng,
+        description: eventDescription,
+      };
+
+      try {
+        await supabase.from('events').update(updatedObj).eq('id', editingEventId);
+      } catch (err) {
+        console.error("Error updating event in Supabase:", err);
+      }
+
+      setCommunityEventsList(prev => prev.map(evt => evt.id === editingEventId ? { ...evt, ...updatedObj } : evt));
+      setEditingEventId(null);
+      setEventSuccess(true);
+      return;
+    }
+
     const newEventId = `evt_${Date.now()}`;
     const targetCommunityId = eventModalCommunity?.id || '';
     const newEventObj = {
@@ -610,7 +738,9 @@ const NetworkMap: React.FC<NetworkMapProps> = ({ communityGroups, onRefreshCommu
       image: eventImage || eventCategoryItem.image,
       date_str: eventDateStr || 'Upcoming',
       time_str: eventTimeStr || '7:00 PM',
-      location: eventLocation || eventModalCommunity?.name,
+      location: targetLocName,
+      lat: targetLat,
+      lng: targetLng,
       description: eventDescription,
     };
     try {
@@ -1048,29 +1178,12 @@ const NetworkMap: React.FC<NetworkMapProps> = ({ communityGroups, onRefreshCommu
             <div className="nm-modal-header" style={{ borderColor: `${eventsModalCommunity.color}44` }}>
               <div className="nm-modal-header-info">
                 <h3 className="nm-modal-title">{eventsModalCommunity.name}</h3>
-                <span className="nm-modal-badge" style={{ background: eventsModalCommunity.color }}>
-                  <Calendar size={11} style={{ marginRight: 4 }} /> Events ({communityEventsList.length})
-                </span>
               </div>
 
               <div className="nm-modal-header-actions">
                 <button
                   className="nm-modal-add-btn"
-                  onClick={() => {
-                    const targetComm = eventsModalCommunity;
-                    setEventsModalCommunity(null);
-                    setSelected(null);
-                    setEventModalCommunity(targetComm);
-                    setEventCategoryItem(EVENT_CATEGORY_OPTIONS[0]);
-                    setEventTitle('');
-                    setEventImage(EVENT_CATEGORY_OPTIONS[0].image);
-                    setEventDateStr('');
-                    setEventTimeStr('');
-                    setEventLocation(targetComm.name || targetComm.locationName || '');
-                    setEventDescription('');
-                    setEventSuccess(false);
-                    setShowCreateEventModal(true);
-                  }}
+                  onClick={() => openAddEventModal(eventsModalCommunity)}
                   title="Add Event for this Community"
                   style={{
                     background: `linear-gradient(135deg, ${eventsModalCommunity.color}, ${eventsModalCommunity.color}cc)`
@@ -1089,20 +1202,95 @@ const NetworkMap: React.FC<NetworkMapProps> = ({ communityGroups, onRefreshCommu
               </div>
             </div>
 
-            {/* Modal Search */}
-            <div className="nm-modal-search-wrap">
-              <Search size={14} className="nm-modal-search-icon" />
-              <input
-                className="nm-modal-search-inp"
-                placeholder="Search events by title or location..."
-                value={eventSearch}
-                onChange={e => setEventSearch(e.target.value)}
-              />
-              {eventSearch && (
-                <button className="nm-modal-search-clear" onClick={() => setEventSearch('')}>
-                  <X size={12} />
-                </button>
-              )}
+            {/* Modal Search & Event Count Strip (70% / 30% Row Alignment) */}
+            <div
+              className="nm-modal-search-row"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                padding: '12px 20px',
+                borderBottom: '1px solid rgba(255, 255, 255, 0.08)'
+              }}
+            >
+              {/* Search Field - 70% Width */}
+              <div
+                className="nm-modal-search-field-wrap"
+                style={{
+                  flex: '0 0 calc(80% - 5px)',
+                  position: 'relative',
+                  display: 'flex',
+                  alignItems: 'center'
+                }}
+              >
+                <Search size={14} className="nm-modal-search-icon" style={{ position: 'absolute', left: '12px', color: '#94a3b8', zIndex: 2 }} />
+                <input
+                  className="nm-modal-search-inp"
+                  placeholder="Search events by title or location..."
+                  value={eventSearch}
+                  onChange={e => setEventSearch(e.target.value)}
+                  style={{
+                    width: '100%',
+                    paddingLeft: '34px',
+                    paddingRight: eventSearch ? '32px' : '12px',
+                    height: '38px',
+                    borderRadius: '10px',
+                    fontSize: '13px',
+                    outline: 'none',
+                    border: '1px solid rgba(255, 255, 255, 0.3)'
+                  }}
+                />
+                {eventSearch && (
+                  <button
+                    className="nm-modal-search-clear"
+                    onClick={() => setEventSearch('')}
+                    style={{
+                      position: 'absolute',
+                      right: '10px',
+                      background: 'none',
+                      border: 'none',
+                      color: '#94a3b8',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center'
+                    }}
+                  >
+                    <X size={12} />
+                  </button>
+                )}
+              </div>
+
+              {/* Events Count Badge - 30% Width */}
+              <div
+                style={{
+                  flex: '0 0 calc(20% - 5px)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <span
+                  className="nm-modal-badge"
+                  style={{
+                    background: eventsModalCommunity.color,
+                    // width: '100%',
+                    height: '24px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderRadius: '10px',
+                    fontSize: '11px',
+                    fontWeight: 400,
+                    color: '#ffffff',
+                    boxShadow: `0 4px 14px ${eventsModalCommunity.color}44`,
+                    whiteSpace: 'nowrap',
+                    gap: '5px',
+                    margin: 0
+                  }}
+                >
+                  <Calendar size={11} /> Events ({communityEventsList.length})
+                </span>
+              </div>
             </div>
 
             {/* Events List Body */}
@@ -1116,8 +1304,8 @@ const NetworkMap: React.FC<NetworkMapProps> = ({ communityGroups, onRefreshCommu
 
                 if (filteredEvents.length === 0) {
                   return (
-                    <div className="nm-members-empty">
-                      <Calendar size={28} style={{ opacity: 0.4, marginBottom: 8 }} />
+                    <div className="nm-members-empty" style={{ margin: "16px 20px" }}>
+                      {/* <Calendar size={28} style={{ opacity: 0.4, marginBottom: 8 }} /> */}
                       <p>No events found for <strong>{eventsModalCommunity.name}</strong></p>
                     </div>
                   );
@@ -1145,9 +1333,37 @@ const NetworkMap: React.FC<NetworkMapProps> = ({ communityGroups, onRefreshCommu
                     <div className="nm-event-card-content">
                       <div className="nm-event-card-header">
                         <h4 className="nm-event-card-title">{evt.title}</h4>
-                        <span className="nm-event-cat-badge" style={{ background: `${eventsModalCommunity.color}22`, color: eventsModalCommunity.color, borderColor: `${eventsModalCommunity.color}55` }}>
-                          {evt.category || 'Event'}
-                        </span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span className="nm-event-cat-badge" style={{ background: `${eventsModalCommunity.color}22`, color: eventsModalCommunity.color, borderColor: `${eventsModalCommunity.color}55` }}>
+                            {evt.category || 'Event'}
+                          </span>
+                          <button
+                            type="button"
+                            className="nm-event-card-edit-btn"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openEditEventModal(evt.id, evt);
+                            }}
+                            title="Edit this event"
+                            style={{
+                              background: 'rgba(255, 255, 255, 0.08)',
+                              border: '1px solid rgba(255, 255, 255, 0.15)',
+                              color: '#38bdf8',
+                              borderRadius: '6px',
+                              padding: '3px 8px',
+                              fontSize: '11px',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              transition: 'all 0.2s ease'
+                            }}
+                          >
+                            <Pencil size={11} />
+                            <span>Edit</span>
+                          </button>
+                        </div>
                       </div>
                       <div className="nm-event-card-meta">
                         <span><Clock size={11} /> {evt.date_str || evt.dateStr || 'Upcoming'} at {evt.time_str || evt.timeStr || '7:00 PM'}</span>
@@ -1558,7 +1774,7 @@ const NetworkMap: React.FC<NetworkMapProps> = ({ communityGroups, onRefreshCommu
       {showCreateEventModal && (
         <div
           className="nm-create-modal-backdrop"
-          onClick={() => setShowCreateEventModal(false)}
+          onClick={closeCreateEventModal}
           onMouseDown={e => e.stopPropagation()}
           onWheel={e => e.stopPropagation()}
         >
@@ -1577,15 +1793,15 @@ const NetworkMap: React.FC<NetworkMapProps> = ({ communityGroups, onRefreshCommu
                   <Calendar size={20} color="#fff" />
                 </div>
                 <div>
-                  <h3 className="nm-create-title">Create Event</h3>
+                  <h3 className="nm-create-title">{editingEventId ? 'Edit Event' : 'Create Event'}</h3>
                   <p className="nm-create-subtitle">
-                    Add new activity for <strong>{eventModalCommunity?.name || 'Community'}</strong>
+                    {editingEventId ? 'Update details for' : 'Add new activity for'} <strong>{eventModalCommunity?.name || 'Community'}</strong>
                   </p>
                 </div>
               </div>
               <button
                 className="nm-modal-close-btn"
-                onClick={() => setShowCreateEventModal(false)}
+                onClick={closeCreateEventModal}
               >
                 <X size={16} />
               </button>
@@ -1596,11 +1812,11 @@ const NetworkMap: React.FC<NetworkMapProps> = ({ communityGroups, onRefreshCommu
               {eventSuccess ? (
                 <div className="nm-add-modal-success">
                   <CheckCircle2 size={44} className="nm-success-icon" />
-                  <h4>Event Created!</h4>
-                  <p>Your event <strong>{eventTitle}</strong> is now posted for {eventModalCommunity?.name}.</p>
+                  <h4>{editingEventId ? 'Event Updated!' : 'Event Created!'}</h4>
+                  <p>Your event <strong>{eventTitle}</strong> has been successfully {editingEventId ? 'updated' : 'posted'}.</p>
                   <button
                     className="nm-invite-send-btn"
-                    onClick={() => setShowCreateEventModal(false)}
+                    onClick={closeCreateEventModal}
                   >
                     Done
                   </button>
@@ -1675,16 +1891,112 @@ const NetworkMap: React.FC<NetworkMapProps> = ({ communityGroups, onRefreshCommu
                     </div>
                   </div>
 
-                  {/* Location / Venue */}
-                  <div className="nm-form-group">
-                    <label className="nm-form-label">Location / Venue</label>
-                    <input
-                      type="text"
-                      className="nm-form-inp"
-                      placeholder="e.g. Koramangala Turf Ground Pitch 1"
-                      value={eventLocation}
-                      onChange={e => setEventLocation(e.target.value)}
-                    />
+                  {/* Location Picker Input (Google Style Autocomplete with Lat/Lng) */}
+                  <div className="nm-form-group nm-location-group">
+                    <label className="nm-form-label">
+                      Location *
+                      {eventSelectedLocation && (
+                        <span className="nm-location-coords-badge">
+                          📍 Lat: {eventSelectedLocation.lat.toFixed(4)}, Lng: {eventSelectedLocation.lng.toFixed(4)}
+                        </span>
+                      )}
+                    </label>
+
+                    <div className="nm-location-input-wrap">
+                      <MapPin size={16} className="nm-location-icon" />
+                      <input
+                        type="text"
+                        className="nm-form-inp nm-location-inp"
+                        placeholder="Start typing location..."
+                        value={eventLocationInput}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setEventLocationInput(val);
+                          setEventSelectedLocation(null);
+
+                          if (val.trim().length > 0) {
+                            const filtered = BANGALORE_LOCATIONS.filter(l =>
+                              l.name.toLowerCase().includes(val.toLowerCase()) ||
+                              l.area.toLowerCase().includes(val.toLowerCase())
+                            );
+                            setEventLocationSuggestions(filtered);
+                            setShowEventLocationDropdown(true);
+
+                            fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(val + ', Bangalore')}&limit=5`)
+                              .then(res => res.json())
+                              .then(geoData => {
+                                if (Array.isArray(geoData) && geoData.length > 0) {
+                                  const geoOptions: LocationOption[] = geoData.map((g: any) => ({
+                                    name: g.display_name.split(',').slice(0, 3).join(','),
+                                    lat: parseFloat(g.lat),
+                                    lng: parseFloat(g.lon),
+                                    area: 'Bengaluru'
+                                  }));
+                                  setEventLocationSuggestions(prev => {
+                                    const combined = [...prev];
+                                    geoOptions.forEach(opt => {
+                                      if (!combined.some(c => c.name === opt.name)) combined.push(opt);
+                                    });
+                                    return combined;
+                                  });
+                                }
+                              })
+                              .catch(() => { });
+                          } else {
+                            setEventLocationSuggestions([]);
+                            setShowEventLocationDropdown(false);
+                          }
+                        }}
+                        onFocus={() => {
+                          if (eventLocationInput.trim().length > 0) {
+                            setShowEventLocationDropdown(true);
+                          } else {
+                            setShowEventLocationDropdown(false);
+                          }
+                        }}
+                      />
+                      {eventLocationInput && (
+                        <button
+                          type="button"
+                          className="nm-location-clear-btn"
+                          onClick={() => {
+                            setEventLocationInput('');
+                            setEventSelectedLocation(null);
+                            setEventLocationSuggestions([]);
+                            setShowEventLocationDropdown(false);
+                          }}
+                          title="Clear location"
+                        >
+                          <X size={12} />
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Google Style Autocomplete Suggestions Dropdown */}
+                    {showEventLocationDropdown && eventLocationSuggestions.length > 0 && (
+                      <div className="nm-location-dropdown" onMouseDown={e => e.stopPropagation()}>
+                        <div className="nm-location-dropdown-title">Matching Bangalore Locations</div>
+                        {eventLocationSuggestions.map((loc, lIdx) => (
+                          <div
+                            key={lIdx}
+                            className="nm-location-item"
+                            onClick={() => {
+                              setEventSelectedLocation(loc);
+                              setEventLocationInput(loc.name);
+                              setShowEventLocationDropdown(false);
+                            }}
+                          >
+                            <div className="nm-location-item-icon">
+                              <MapPin size={15} />
+                            </div>
+                            <div className="nm-location-item-meta">
+                              <span className="nm-location-item-name">{loc.name}</span>
+                              <span className="nm-location-item-area">{loc.area} • Lat: {loc.lat.toFixed(4)}, Lng: {loc.lng.toFixed(4)}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   {/* Cover Image URL */}
@@ -1716,7 +2028,7 @@ const NetworkMap: React.FC<NetworkMapProps> = ({ communityGroups, onRefreshCommu
                     <button
                       type="button"
                       className="nm-add-cancel-btn"
-                      onClick={() => setShowCreateEventModal(false)}
+                      onClick={closeCreateEventModal}
                     >
                       Cancel
                     </button>
@@ -1730,8 +2042,8 @@ const NetworkMap: React.FC<NetworkMapProps> = ({ communityGroups, onRefreshCommu
                           : undefined
                       }}
                     >
-                      <Plus size={16} />
-                      <span>Create Event</span>
+                      {editingEventId ? <CheckCircle2 size={16} /> : <Plus size={16} />}
+                      <span>{editingEventId ? 'Save Changes' : 'Create Event'}</span>
                     </button>
                   </div>
                 </form>

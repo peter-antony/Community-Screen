@@ -1,14 +1,15 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
   ArrowLeft,
-  Clock,
   MapPin,
-  Users,
-  Sparkles,
-  ShieldCheck
+  Navigation,
+  Pencil,
+  X,
+  CheckCircle2
 } from 'lucide-react';
 import { supabase } from '../supabaseClient';
+import { useTheme } from '../context/ThemeContext';
 import './EventDetailsPage.css';
 
 export interface EventDetailsData {
@@ -22,6 +23,8 @@ export interface EventDetailsData {
   time_str?: string;
   timeStr?: string;
   location?: string;
+  lat?: number;
+  lng?: number;
   description?: string;
   host_name?: string;
   hostName?: string;
@@ -37,10 +40,354 @@ export interface EventDetailsData {
   tags?: string[];
 }
 
+// ─────────────────────────────────────────────
+// MERCATOR MATH & TILE COMPUTATION FOR DYNAMIC MAP & PIN
+// ─────────────────────────────────────────────
+const MAP_TILE_SIZE = 256;
+const DEFAULT_BANGALORE_CENTER = { lat: 12.9352, lng: 77.6245 };
+
+function mapLng2frac(lng: number, z: number): number {
+  return ((lng + 180) / 360) * Math.pow(2, z);
+}
+function mapLat2frac(lat: number, z: number): number {
+  const r = (lat * Math.PI) / 180;
+  return ((1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2) * Math.pow(2, z);
+}
+function mapFracToLng(fracX: number, z: number): number {
+  return (fracX / Math.pow(2, z)) * 360 - 180;
+}
+function mapFracToLat(fracY: number, z: number): number {
+  const n = Math.PI - (2 * Math.PI * fracY) / Math.pow(2, z);
+  return (180 / Math.PI) * Math.atan(0.5 * (Math.exp(n) - Math.exp(-n)));
+}
+
+function mapToPixel(
+  lat: number, lng: number,
+  cLat: number, cLng: number,
+  vpW: number, vpH: number,
+  panX: number, panY: number,
+  zoom: number
+): { x: number; y: number } {
+  const cx = mapLng2frac(cLng, zoom) - panX / MAP_TILE_SIZE;
+  const cy = mapLat2frac(cLat, zoom) - panY / MAP_TILE_SIZE;
+  return {
+    x: vpW / 2 + (mapLng2frac(lng, zoom) - cx) * MAP_TILE_SIZE,
+    y: vpH / 2 + (mapLat2frac(lat, zoom) - cy) * MAP_TILE_SIZE,
+  };
+}
+
+function mapComputeTiles(
+  cLat: number, cLng: number,
+  vpW: number, vpH: number,
+  panX: number, panY: number,
+  zoom: number
+) {
+  const cx = mapLng2frac(cLng, zoom) - panX / MAP_TILE_SIZE;
+  const cy = mapLat2frac(cLat, zoom) - panY / MAP_TILE_SIZE;
+  const hx = Math.ceil(vpW / MAP_TILE_SIZE / 2) + 2;
+  const hy = Math.ceil(vpH / MAP_TILE_SIZE / 2) + 2;
+  const n = Math.pow(2, zoom);
+  const tiles: Array<{ x: number; y: number; px: number; py: number; key: string }> = [];
+  for (let dy = -hy; dy <= hy; dy++) {
+    for (let dx = -hx; dx <= hx; dx++) {
+      const tx = Math.floor(cx) + dx;
+      const ty = Math.floor(cy) + dy;
+      if (tx < 0 || tx >= n || ty < 0 || ty >= n) continue;
+      tiles.push({
+        x: tx, y: ty,
+        px: vpW / 2 + (tx - cx) * MAP_TILE_SIZE,
+        py: vpH / 2 + (ty - cy) * MAP_TILE_SIZE,
+        key: `${zoom}-${tx}-${ty}`,
+      });
+    }
+  }
+  return tiles;
+}
+
+const getCoordinates = (location: string, latVal?: number, lngVal?: number) => {
+  if (latVal && lngVal && !isNaN(Number(latVal)) && !isNaN(Number(lngVal))) {
+    return { lat: Number(latVal), lng: Number(lngVal) };
+  }
+
+  const locLower = (location || '').toLowerCase();
+  if (locLower.includes('koramangala')) return { lat: 12.9352, lng: 77.6245 };
+  if (locLower.includes('indiranagar')) return { lat: 12.9784, lng: 77.6408 };
+  if (locLower.includes('jp nagar')) return { lat: 12.9105, lng: 77.5958 };
+  if (locLower.includes('hsr')) return { lat: 12.9116, lng: 77.6474 };
+  if (locLower.includes('jayanagar')) return { lat: 12.9250, lng: 77.5938 };
+  if (locLower.includes('cubbon park')) return { lat: 12.9763, lng: 77.5929 };
+  if (locLower.includes('mg road')) return { lat: 12.9756, lng: 77.6015 };
+  if (locLower.includes('whitefield')) return { lat: 12.9866, lng: 77.7381 };
+  if (locLower.includes('electronic city')) return { lat: 12.8452, lng: 77.6602 };
+
+  return DEFAULT_BANGALORE_CENTER;
+};
+
+// ─────────────────────────────────────────────
+// DYNAMIC EVENT LOCATION MAP WITH THEME SUPPORT & ANCHORED PIN
+// ─────────────────────────────────────────────
+interface EventLocationMapProps {
+  locationStr: string;
+  eventLat?: number;
+  eventLng?: number;
+}
+
+const EventLocationMap: React.FC<EventLocationMapProps> = ({ locationStr, eventLat, eventLng }) => {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+
+  const targetCoords = getCoordinates(locationStr, eventLat, eventLng);
+  const [mapCenter, setMapCenter] = useState(targetCoords);
+  const [zoom, setZoom] = useState(15);
+  const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
+  const [dragging, setDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [mapSize, setMapSize] = useState({ w: 800, h: 260 });
+
+  useEffect(() => {
+    setMapCenter(targetCoords);
+    setPanOffset({ x: 0, y: 0 });
+  }, [locationStr, eventLat, eventLng]);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setMapSize({ w: el.clientWidth, h: el.clientHeight }));
+    ro.observe(el);
+    setMapSize({ w: el.clientWidth, h: el.clientHeight });
+    return () => ro.disconnect();
+  }, []);
+
+  const tiles = useMemo(() =>
+    mapComputeTiles(mapCenter.lat, mapCenter.lng, mapSize.w, mapSize.h, panOffset.x, panOffset.y, zoom),
+    [mapCenter, mapSize, panOffset, zoom]
+  );
+
+  const pinPixelPos = useMemo(() =>
+    mapToPixel(targetCoords.lat, targetCoords.lng, mapCenter.lat, mapCenter.lng, mapSize.w, mapSize.h, panOffset.x, panOffset.y, zoom),
+    [targetCoords, mapCenter, mapSize, panOffset, zoom]
+  );
+
+  const onMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setDragging(true);
+    setDragStart({ x: e.clientX, y: e.clientY });
+  };
+
+  const onMouseMove = (e: React.MouseEvent) => {
+    if (!dragging) return;
+    setPanOffset({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
+  };
+
+  const onMouseUp = (e: React.MouseEvent) => {
+    if (!dragging) return;
+    setDragging(false);
+    const dx = e.clientX - dragStart.x;
+    const dy = e.clientY - dragStart.y;
+    const cx = mapLng2frac(mapCenter.lng, zoom) - dx / MAP_TILE_SIZE;
+    const cy = mapLat2frac(mapCenter.lat, zoom) - dy / MAP_TILE_SIZE;
+    setMapCenter({ lat: mapFracToLat(cy, zoom), lng: mapFracToLng(cx, zoom) });
+    setPanOffset({ x: 0, y: 0 });
+  };
+
+  const handleZoomIn = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setZoom(z => Math.min(z + 1, 18));
+  };
+
+  const handleZoomOut = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setZoom(z => Math.max(z - 1, 11));
+  };
+
+  const handleRecenter = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setMapCenter(targetCoords);
+    setPanOffset({ x: 0, y: 0 });
+    setZoom(15);
+  };
+
+  return (
+    <div
+      ref={containerRef}
+      className={`event-map-container ${dragging ? 'dragging' : ''}`}
+      style={{
+        position: 'relative',
+        height: '260px',
+        borderRadius: '16px',
+        overflow: 'hidden',
+        border: isLight ? '1px solid rgba(0, 0, 0, 0.12)' : '1px solid rgba(6, 182, 212, 0.25)',
+        cursor: dragging ? 'grabbing' : 'grab',
+        userSelect: 'none',
+        background: isLight ? '#f1f5f9' : '#091224'
+      }}
+      onMouseDown={onMouseDown}
+      onMouseMove={onMouseMove}
+      onMouseUp={onMouseUp}
+      onMouseLeave={onMouseUp}
+    >
+      {/* OpenStreetMap Rendered Tiles with Theme Filter */}
+      {tiles.map(t => (
+        <img
+          key={t.key}
+          src={`https://tile.openstreetmap.org/${zoom}/${t.x}/${t.y}.png`}
+          alt=""
+          style={{
+            position: 'absolute',
+            left: t.px,
+            top: t.py,
+            width: MAP_TILE_SIZE,
+            height: MAP_TILE_SIZE,
+            pointerEvents: 'none',
+            filter: isLight
+              ? 'brightness(104%) contrast(90%) saturate(30%) hue-rotate(195deg)'
+              : 'invert(100%) hue-rotate(180deg) brightness(85%) contrast(125%)',
+            opacity: isLight ? 0.95 : 0.85
+          }}
+          draggable={false}
+        />
+      ))}
+
+      {/* DYNAMICALLY ANCHORED PIN MARKER */}
+      <div
+        className="map-pin-overlay-marker"
+        style={{
+          position: 'absolute',
+          left: pinPixelPos.x,
+          top: pinPixelPos.y,
+          transform: 'translate(-50%, -50%)',
+          pointerEvents: 'none',
+          zIndex: 10
+        }}
+      >
+        <div className="map-pin-ripple" />
+        <div className="map-pin-badge-icon">
+          <MapPin size={22} className="map-pin-svg" />
+        </div>
+      </div>
+
+      {/* Map Interactive Controls (Zoom & Recenter) */}
+      <div
+        style={{
+          position: 'absolute',
+          top: '12px',
+          right: '12px',
+          zIndex: 12,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '4px',
+          background: isLight ? 'rgba(255, 255, 255, 0.92)' : 'rgba(9, 18, 36, 0.88)',
+          backdropFilter: 'blur(12px)',
+          padding: '4px',
+          borderRadius: '10px',
+          border: isLight ? '1px solid rgba(0, 0, 0, 0.12)' : '1px solid rgba(6, 182, 212, 0.25)',
+          boxShadow: isLight ? '0 4px 14px rgba(0, 0, 0, 0.1)' : 'none'
+        }}
+      >
+        <button
+          type="button"
+          onClick={handleZoomIn}
+          title="Zoom In"
+          style={{
+            background: isLight ? '#f8fafc' : 'rgba(255, 255, 255, 0.05)',
+            border: 'none',
+            color: isLight ? '#2563eb' : '#67e8f9',
+            width: '28px',
+            height: '28px',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontWeight: 'bold',
+            fontSize: '14px'
+          }}
+        >
+          +
+        </button>
+        <button
+          type="button"
+          onClick={handleZoomOut}
+          title="Zoom Out"
+          style={{
+            background: isLight ? '#f8fafc' : 'rgba(255, 255, 255, 0.05)',
+            border: 'none',
+            color: isLight ? '#2563eb' : '#67e8f9',
+            width: '28px',
+            height: '28px',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontWeight: 'bold',
+            fontSize: '14px'
+          }}
+        >
+          -
+        </button>
+        <button
+          type="button"
+          onClick={handleRecenter}
+          title="Recenter Pin"
+          style={{
+            background: isLight ? 'rgba(37, 99, 235, 0.12)' : 'rgba(6, 182, 212, 0.15)',
+            border: isLight ? '1px solid rgba(37, 99, 235, 0.3)' : '1px solid rgba(6, 182, 212, 0.3)',
+            color: isLight ? '#2563eb' : '#67e8f9',
+            width: '28px',
+            height: '28px',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontSize: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+        >
+          🎯
+        </button>
+      </div>
+
+      {/* Location Name Badge */}
+      <div
+        className="map-location-badge"
+        style={{
+          position: 'absolute',
+          bottom: '12px',
+          left: '12px',
+          background: isLight ? 'rgba(255, 255, 255, 0.94)' : 'rgba(9, 18, 36, 0.92)',
+          backdropFilter: 'blur(12px)',
+          padding: '8px 14px',
+          borderRadius: '12px',
+          border: isLight ? '1px solid rgba(0, 0, 0, 0.12)' : '1px solid rgba(6, 182, 212, 0.3)',
+          boxShadow: isLight ? '0 4px 14px rgba(0, 0, 0, 0.08)' : 'none',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          maxWidth: 'calc(100% - 24px)',
+          zIndex: 5
+        }}
+      >
+        <MapPin size={14} style={{ color: isLight ? '#2563eb' : '#06b6d4', flexShrink: 0 }} />
+        <span
+          style={{
+            fontSize: '12px',
+            fontWeight: 600,
+            color: isLight ? '#0f172a' : '#f8fafc',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap'
+          }}
+        >
+          {locationStr}
+        </span>
+      </div>
+    </div>
+  );
+};
+
 export const EventDetailsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
 
   // Passed state from navigation
   const stateEvent = (location.state as any)?.event;
@@ -49,6 +396,17 @@ export const EventDetailsPage: React.FC = () => {
   const [eventData, setEventData] = useState<EventDetailsData | null>(stateEvent || null);
   const [loading, setLoading] = useState<boolean>(!stateEvent);
   const [attendees, setAttendees] = useState<Array<{ name: string; avatar: string; role?: string }>>([]);
+
+  // Edit Event Modal States
+  const [showEditModal, setShowEditModal] = useState<boolean>(false);
+  const [editTitle, setEditTitle] = useState<string>('');
+  const [editCategory, setEditCategory] = useState<string>('');
+  const [editDateStr, setEditDateStr] = useState<string>('');
+  const [editTimeStr, setEditTimeStr] = useState<string>('');
+  const [editLocationInput, setEditLocationInput] = useState<string>('');
+  const [editImage, setEditImage] = useState<string>('');
+  const [editDescription, setEditDescription] = useState<string>('');
+  const [saving, setSaving] = useState<boolean>(false);
 
   useEffect(() => {
     fetchEventDetails();
@@ -92,6 +450,8 @@ export const EventDetailsPage: React.FC = () => {
           date_str: 'Saturday, Aug 8',
           time_str: '5:30 PM - 8:30 PM',
           location: 'Koramangala Turf Arena, Bengaluru',
+          lat: 12.9352,
+          lng: 77.6245,
           description: 'Join us for an exciting 3v3 weekend community meetup tournament! Perfect for all skill levels. We provide energy drinks, referee, gear, and high-tempo music throughout the evening.',
           host_name: stateCommunity?.hostName || 'Ananya Rao',
           host_avatar: stateCommunity?.hostAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
@@ -121,6 +481,71 @@ export const EventDetailsPage: React.FC = () => {
     }
   };
 
+  const openEditModal = async () => {
+    if (!id) return;
+    setShowEditModal(true);
+
+    // Initial binding from current state
+    setEditTitle(eventData?.title || stateEvent?.title || '');
+    setEditCategory(eventData?.category || stateEvent?.category || 'Event');
+    setEditDateStr(eventData?.date_str || eventData?.dateStr || stateEvent?.date_str || stateEvent?.dateStr || '');
+    setEditTimeStr(eventData?.time_str || eventData?.timeStr || stateEvent?.time_str || stateEvent?.timeStr || '');
+    setEditLocationInput(eventData?.location || stateEvent?.location || '');
+    setEditImage(eventData?.image || stateEvent?.image || '');
+    setEditDescription(eventData?.description || stateEvent?.description || '');
+
+    // Query Supabase events table by ID to get the exact database row
+    try {
+      const { data, error } = await supabase
+        .from('events')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (!error && data) {
+        setEditTitle(data.title || '');
+        setEditCategory(data.category || 'Event');
+        setEditDateStr(data.date_str || data.dateStr || '');
+        setEditTimeStr(data.time_str || data.timeStr || '');
+        setEditLocationInput(data.location || '');
+        setEditImage(data.image || '');
+        setEditDescription(data.description || '');
+      }
+    } catch (err) {
+      console.error('Error fetching event record for edit modal:', err);
+    }
+  };
+
+  const handleSaveEditEvent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editTitle.trim() || !id) return;
+    try {
+      setSaving(true);
+
+      const targetCoords = getCoordinates(editLocationInput, eventData?.lat, eventData?.lng);
+      const updatedFields = {
+        title: editTitle.trim(),
+        category: editCategory,
+        date_str: editDateStr,
+        time_str: editTimeStr,
+        location: editLocationInput,
+        lat: targetCoords.lat,
+        lng: targetCoords.lng,
+        image: editImage,
+        description: editDescription,
+      };
+
+      await supabase.from('events').update(updatedFields).eq('id', id);
+
+      setEventData(prev => prev ? { ...prev, ...updatedFields } : { id, ...updatedFields });
+      setShowEditModal(false);
+    } catch (err) {
+      console.error('Error updating event details:', err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="user-profile-page">
@@ -140,6 +565,8 @@ export const EventDetailsPage: React.FC = () => {
   const locationStr = eventData?.location || stateEvent?.location || 'Bengaluru Community Venue';
   const description = eventData?.description || stateEvent?.description || 'Join us for this exciting community gathering and meet fellow members in your area!';
   const hostName = eventData?.host_name || eventData?.hostName || stateEvent?.host_name || stateCommunity?.hostName || 'Community Lead';
+  const eventLat = eventData?.lat || stateEvent?.lat;
+  const eventLng = eventData?.lng || stateEvent?.lng;
 
   return (
     <div className="user-profile-page event-profile-page">
@@ -167,19 +594,39 @@ export const EventDetailsPage: React.FC = () => {
             <span className="profile-status-dot online" />
           </div>
 
-          <div className="profile-name-details">
-            <div className="name-with-badge">
-              <h1>{title}</h1>
-              <span className="own-badge">{category.toUpperCase()}</span>
+          <div className="profile-name-details" style={{ flex: 1 }}>
+            <div className="name-with-badge" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <h1>{title}</h1>
+                <span className="own-badge">{category.toUpperCase()}</span>
+              </div>
+              <button
+                type="button"
+                className="btn-directions"
+                onClick={openEditModal}
+                style={{
+                  background: isLight ? 'rgba(37, 99, 235, 0.12)' : 'rgba(6, 182, 212, 0.15)',
+                  border: isLight ? '1px solid rgba(37, 99, 235, 0.3)' : '1px solid rgba(6, 182, 212, 0.3)',
+                  color: isLight ? '#2563eb' : '#67e8f9',
+                  cursor: 'pointer',
+                  padding: '6px 14px',
+                  borderRadius: '20px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+                title="Edit this Event"
+              >
+                <Pencil size={13} />
+                <span>Edit Event</span>
+              </button>
             </div>
 
             <span className="profile-role-title">Hosted by {hostName}</span>
 
             <div className="profile-meta-row">
-              {/* <div className="meta-item">
-                <Clock size={14} />
-                <span>{timeStr}</span>
-              </div> */}
               <div className="meta-item">
                 <MapPin size={14} />
                 <span>{locationStr}</span>
@@ -217,23 +664,26 @@ export const EventDetailsPage: React.FC = () => {
               <p>{description}</p>
             </div>
 
-            <div className="profile-skills-box" style={{ marginTop: '20px' }}>
-              <h4>Event Highlights</h4>
-              <div className="skills-cloud">
-                <span className="capability-tag">
-                  <ShieldCheck size={14} className="tag-cap-icon" /> Verified Event
-                </span>
-                <span className="capability-tag">
-                  <Users size={14} className="tag-cap-icon" /> Open Community Gathering
-                </span>
-                <span className="capability-tag">
-                  <Sparkles size={14} className="tag-cap-icon" /> Equipment Provided
-                </span>
+            {/* Event Location & Venue Interactive Dynamic Map */}
+            <div className="event-location-map-box">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '10px' }}>
+                <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: 0, fontSize: '15px', fontWeight: 700 }}>
+                  Event Location & Venue
+                </h4>
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(locationStr)}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="btn-directions"
+                >
+                  <Navigation size={13} />
+                  <span>Get Directions</span>
+                </a>
               </div>
+
+              <EventLocationMap locationStr={locationStr} eventLat={eventLat} eventLng={eventLng} />
             </div>
           </div>
-
-          {/* <div style={{ height: '1px', background: 'var(--border-glass, rgba(255, 255, 255, 0.08))' }} /> */}
 
           {/* Confirmed Attendees */}
           <div className="about-tab-content">
@@ -256,6 +706,161 @@ export const EventDetailsPage: React.FC = () => {
           </div>
         </div>
       </section>
+
+      {/* Edit Event Popup Modal */}
+      {showEditModal && (
+        <div
+          className="nm-create-modal-backdrop"
+          onClick={() => setShowEditModal(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 9999,
+            background: 'rgba(0, 0, 0, 0.75)',
+            backdropFilter: 'blur(8px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px'
+          }}
+        >
+          <div
+            className="nm-create-modal-card"
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: isLight ? '#ffffff' : '#0f172a',
+              borderRadius: '24px',
+              padding: '28px',
+              width: '100%',
+              maxWidth: '540px',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              border: isLight ? '1px solid rgba(0, 0, 0, 0.1)' : '1px solid rgba(255, 255, 255, 0.15)',
+              color: isLight ? '#0f172a' : '#f8fafc',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', paddingBottom: '12px', borderBottom: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.1)' }}>
+              <h3 style={{ fontSize: '18px', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Pencil size={18} style={{ color: isLight ? '#2563eb' : '#06b6d4' }} /> Edit Event Details
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowEditModal(false)}
+                style={{ background: 'none', border: 'none', color: isLight ? '#64748b' : '#94a3b8', cursor: 'pointer' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEditEvent} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {/* Event Title */}
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '6px' }}>Title *</label>
+                <input
+                  type="text"
+                  value={editTitle}
+                  onChange={e => setEditTitle(e.target.value)}
+                  required
+                  placeholder="Event Title"
+                  style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255,255,255,0.15)', background: isLight ? '#f8fafc' : 'rgba(255,255,255,0.05)', color: 'inherit', outline: 'none' }}
+                />
+              </div>
+
+              {/* Category */}
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '6px' }}>Category</label>
+                <input
+                  type="text"
+                  value={editCategory}
+                  onChange={e => setEditCategory(e.target.value)}
+                  placeholder="e.g. Sport, Music, Tech, Social"
+                  style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255,255,255,0.15)', background: isLight ? '#f8fafc' : 'rgba(255,255,255,0.05)', color: 'inherit', outline: 'none' }}
+                />
+              </div>
+
+              {/* Date & Time */}
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '6px' }}>Date</label>
+                  <input
+                    type="text"
+                    value={editDateStr}
+                    onChange={e => setEditDateStr(e.target.value)}
+                    placeholder="e.g. Saturday, Aug 8"
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255,255,255,0.15)', background: isLight ? '#f8fafc' : 'rgba(255,255,255,0.05)', color: 'inherit', outline: 'none' }}
+                  />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '6px' }}>Time</label>
+                  <input
+                    type="text"
+                    value={editTimeStr}
+                    onChange={e => setEditTimeStr(e.target.value)}
+                    placeholder="e.g. 5:30 PM - 8:30 PM"
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255,255,255,0.15)', background: isLight ? '#f8fafc' : 'rgba(255,255,255,0.05)', color: 'inherit', outline: 'none' }}
+                  />
+                </div>
+              </div>
+
+              {/* Location Input */}
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '6px' }}>Location / Venue *</label>
+                <input
+                  type="text"
+                  value={editLocationInput}
+                  onChange={e => setEditLocationInput(e.target.value)}
+                  placeholder="Location name..."
+                  style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255,255,255,0.15)', background: isLight ? '#f8fafc' : 'rgba(255,255,255,0.05)', color: 'inherit', outline: 'none' }}
+                />
+              </div>
+
+              {/* Cover Image URL */}
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '6px' }}>Cover Image URL</label>
+                <input
+                  type="url"
+                  value={editImage}
+                  onChange={e => setEditImage(e.target.value)}
+                  placeholder="https://images.unsplash.com/..."
+                  style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255,255,255,0.15)', background: isLight ? '#f8fafc' : 'rgba(255,255,255,0.05)', color: 'inherit', outline: 'none' }}
+                />
+              </div>
+
+              {/* Description */}
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '6px' }}>Description</label>
+                <textarea
+                  rows={3}
+                  value={editDescription}
+                  onChange={e => setEditDescription(e.target.value)}
+                  placeholder="Event details..."
+                  style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255,255,255,0.15)', background: isLight ? '#f8fafc' : 'rgba(255,255,255,0.05)', color: 'inherit', outline: 'none', resize: 'vertical' }}
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '12px' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowEditModal(false)}
+                  style={{ padding: '9px 20px', borderRadius: '10px', border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255,255,255,0.15)', background: 'none', color: 'inherit', cursor: 'pointer', fontWeight: 600 }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving || !editTitle.trim()}
+                  style={{ padding: '9px 22px', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg, #06b6d4, #3b82f6)', color: '#fff', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <CheckCircle2 size={16} />
+                  <span>{saving ? 'Saving...' : 'Save Changes'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
