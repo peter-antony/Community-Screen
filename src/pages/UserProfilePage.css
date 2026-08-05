@@ -174,15 +174,16 @@
 .profile-role-title {
   font-size: 0.95rem;
   font-weight: 600;
-  color: var(--accent-cyan);
+  /* color: var(--accent-cyan); */
   display: block;
-  margin: 4px 0 12px 0;
+  /* margin: 4px 0 12px 0; */
 }
 
 .profile-meta-row {
   display: flex;
   gap: 20px;
   flex-wrap: wrap;
+  margin-top: 8px
 }
 
 .meta-item {
@@ -516,5 +517,14 @@
 
   .projects-tab-content {
     grid-template-columns: 1fr;
+  }
+
+  .count-val {
+    font-size: 18px;
+    font-weight: 600;
+  }
+
+  .count-lbl {
+    font-size: 11px;
   }
 }

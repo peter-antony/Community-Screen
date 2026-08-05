@@ -1217,7 +1217,7 @@ const NetworkMap: React.FC<NetworkMapProps> = ({ communityGroups, onRefreshCommu
               <div
                 className="nm-modal-search-field-wrap"
                 style={{
-                  flex: '0 0 calc(80% - 5px)',
+                  flex: '0 0 calc(75% - 5px)',
                   position: 'relative',
                   display: 'flex',
                   alignItems: 'center'

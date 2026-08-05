@@ -6,7 +6,8 @@ import {
   Navigation,
   Pencil,
   X,
-  CheckCircle2
+  CheckCircle2,
+  Users
 } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { useTheme } from '../context/ThemeContext';
@@ -394,19 +395,9 @@ export const EventDetailsPage: React.FC = () => {
   const stateCommunity = (location.state as any)?.community;
 
   const [eventData, setEventData] = useState<EventDetailsData | null>(stateEvent || null);
+  const [communityName, setCommunityName] = useState<string>(stateCommunity?.name || (stateEvent as any)?.community_name || '');
   const [loading, setLoading] = useState<boolean>(!stateEvent);
   const [attendees, setAttendees] = useState<Array<{ name: string; avatar: string; role?: string }>>([]);
-
-  // Edit Event Modal States
-  const [showEditModal, setShowEditModal] = useState<boolean>(false);
-  const [editTitle, setEditTitle] = useState<string>('');
-  const [editCategory, setEditCategory] = useState<string>('');
-  const [editDateStr, setEditDateStr] = useState<string>('');
-  const [editTimeStr, setEditTimeStr] = useState<string>('');
-  const [editLocationInput, setEditLocationInput] = useState<string>('');
-  const [editImage, setEditImage] = useState<string>('');
-  const [editDescription, setEditDescription] = useState<string>('');
-  const [saving, setSaving] = useState<boolean>(false);
 
   useEffect(() => {
     fetchEventDetails();
@@ -423,6 +414,19 @@ export const EventDetailsPage: React.FC = () => {
         .single();
 
       if (!error && data) {
+        if ((data as any).community_name) {
+          setCommunityName((data as any).community_name);
+        } else if (data.community_id) {
+          const { data: comm } = await supabase
+            .from('community_map')
+            .select('name')
+            .eq('id', data.community_id)
+            .maybeSingle();
+          if (comm?.name) {
+            setCommunityName(comm.name);
+          }
+        }
+
         let parsedAttendees = [
           { name: data.host_name || stateCommunity?.hostName || 'Host', avatar: data.host_avatar || stateCommunity?.hostAvatar || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=60&q=80', role: 'Host' },
           { name: 'Priya Sharma', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=60&q=80', role: 'Attendee' },
@@ -481,71 +485,6 @@ export const EventDetailsPage: React.FC = () => {
     }
   };
 
-  const openEditModal = async () => {
-    if (!id) return;
-    setShowEditModal(true);
-
-    // Initial binding from current state
-    setEditTitle(eventData?.title || stateEvent?.title || '');
-    setEditCategory(eventData?.category || stateEvent?.category || 'Event');
-    setEditDateStr(eventData?.date_str || eventData?.dateStr || stateEvent?.date_str || stateEvent?.dateStr || '');
-    setEditTimeStr(eventData?.time_str || eventData?.timeStr || stateEvent?.time_str || stateEvent?.timeStr || '');
-    setEditLocationInput(eventData?.location || stateEvent?.location || '');
-    setEditImage(eventData?.image || stateEvent?.image || '');
-    setEditDescription(eventData?.description || stateEvent?.description || '');
-
-    // Query Supabase events table by ID to get the exact database row
-    try {
-      const { data, error } = await supabase
-        .from('events')
-        .select('*')
-        .eq('id', id)
-        .single();
-
-      if (!error && data) {
-        setEditTitle(data.title || '');
-        setEditCategory(data.category || 'Event');
-        setEditDateStr(data.date_str || data.dateStr || '');
-        setEditTimeStr(data.time_str || data.timeStr || '');
-        setEditLocationInput(data.location || '');
-        setEditImage(data.image || '');
-        setEditDescription(data.description || '');
-      }
-    } catch (err) {
-      console.error('Error fetching event record for edit modal:', err);
-    }
-  };
-
-  const handleSaveEditEvent = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editTitle.trim() || !id) return;
-    try {
-      setSaving(true);
-
-      const targetCoords = getCoordinates(editLocationInput, eventData?.lat, eventData?.lng);
-      const updatedFields = {
-        title: editTitle.trim(),
-        category: editCategory,
-        date_str: editDateStr,
-        time_str: editTimeStr,
-        location: editLocationInput,
-        lat: targetCoords.lat,
-        lng: targetCoords.lng,
-        image: editImage,
-        description: editDescription,
-      };
-
-      await supabase.from('events').update(updatedFields).eq('id', id);
-
-      setEventData(prev => prev ? { ...prev, ...updatedFields } : { id, ...updatedFields });
-      setShowEditModal(false);
-    } catch (err) {
-      console.error('Error updating event details:', err);
-    } finally {
-      setSaving(false);
-    }
-  };
-
   if (loading) {
     return (
       <div className="user-profile-page">
@@ -600,7 +539,7 @@ export const EventDetailsPage: React.FC = () => {
                 <h1>{title}</h1>
                 <span className="own-badge">{category.toUpperCase()}</span>
               </div>
-              <button
+              {/* <button
                 type="button"
                 className="btn-directions"
                 onClick={openEditModal}
@@ -621,12 +560,23 @@ export const EventDetailsPage: React.FC = () => {
               >
                 <Pencil size={13} />
                 <span>Edit Event</span>
-              </button>
+              </button> */}
             </div>
 
-            <span className="profile-role-title">Hosted by {hostName}</span>
+            <span>
+              {(communityName || stateCommunity?.name) && (
+                <>
+                  <span style={{ color: isLight ? '#2563eb' : '#06b6d4', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                    <Users size={13} /> {communityName || stateCommunity?.name}
+                  </span>
+                </>
+              )}
+            </span>
 
             <div className="profile-meta-row">
+              <span className="profile-role-title" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginTop: '4px' }}>
+                <span>Hosted by {hostName}</span>
+              </span>
               <div className="meta-item">
                 <MapPin size={14} />
                 <span>{locationStr}</span>
@@ -707,160 +657,6 @@ export const EventDetailsPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Edit Event Popup Modal */}
-      {showEditModal && (
-        <div
-          className="nm-create-modal-backdrop"
-          onClick={() => setShowEditModal(false)}
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 9999,
-            background: 'rgba(0, 0, 0, 0.75)',
-            backdropFilter: 'blur(8px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '16px'
-          }}
-        >
-          <div
-            className="nm-create-modal-card"
-            onClick={e => e.stopPropagation()}
-            style={{
-              background: isLight ? '#ffffff' : '#0f172a',
-              borderRadius: '24px',
-              padding: '28px',
-              width: '100%',
-              maxWidth: '540px',
-              maxHeight: '90vh',
-              overflowY: 'auto',
-              border: isLight ? '1px solid rgba(0, 0, 0, 0.1)' : '1px solid rgba(255, 255, 255, 0.15)',
-              color: isLight ? '#0f172a' : '#f8fafc',
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', paddingBottom: '12px', borderBottom: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.1)' }}>
-              <h3 style={{ fontSize: '18px', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Pencil size={18} style={{ color: isLight ? '#2563eb' : '#06b6d4' }} /> Edit Event Details
-              </h3>
-              <button
-                type="button"
-                onClick={() => setShowEditModal(false)}
-                style={{ background: 'none', border: 'none', color: isLight ? '#64748b' : '#94a3b8', cursor: 'pointer' }}
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveEditEvent} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {/* Event Title */}
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '6px' }}>Title *</label>
-                <input
-                  type="text"
-                  value={editTitle}
-                  onChange={e => setEditTitle(e.target.value)}
-                  required
-                  placeholder="Event Title"
-                  style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255,255,255,0.15)', background: isLight ? '#f8fafc' : 'rgba(255,255,255,0.05)', color: 'inherit', outline: 'none' }}
-                />
-              </div>
-
-              {/* Category */}
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '6px' }}>Category</label>
-                <input
-                  type="text"
-                  value={editCategory}
-                  onChange={e => setEditCategory(e.target.value)}
-                  placeholder="e.g. Sport, Music, Tech, Social"
-                  style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255,255,255,0.15)', background: isLight ? '#f8fafc' : 'rgba(255,255,255,0.05)', color: 'inherit', outline: 'none' }}
-                />
-              </div>
-
-              {/* Date & Time */}
-              <div style={{ display: 'flex', gap: '12px' }}>
-                <div style={{ flex: 1 }}>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '6px' }}>Date</label>
-                  <input
-                    type="text"
-                    value={editDateStr}
-                    onChange={e => setEditDateStr(e.target.value)}
-                    placeholder="e.g. Saturday, Aug 8"
-                    style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255,255,255,0.15)', background: isLight ? '#f8fafc' : 'rgba(255,255,255,0.05)', color: 'inherit', outline: 'none' }}
-                  />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '6px' }}>Time</label>
-                  <input
-                    type="text"
-                    value={editTimeStr}
-                    onChange={e => setEditTimeStr(e.target.value)}
-                    placeholder="e.g. 5:30 PM - 8:30 PM"
-                    style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255,255,255,0.15)', background: isLight ? '#f8fafc' : 'rgba(255,255,255,0.05)', color: 'inherit', outline: 'none' }}
-                  />
-                </div>
-              </div>
-
-              {/* Location Input */}
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '6px' }}>Location / Venue *</label>
-                <input
-                  type="text"
-                  value={editLocationInput}
-                  onChange={e => setEditLocationInput(e.target.value)}
-                  placeholder="Location name..."
-                  style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255,255,255,0.15)', background: isLight ? '#f8fafc' : 'rgba(255,255,255,0.05)', color: 'inherit', outline: 'none' }}
-                />
-              </div>
-
-              {/* Cover Image URL */}
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '6px' }}>Cover Image URL</label>
-                <input
-                  type="url"
-                  value={editImage}
-                  onChange={e => setEditImage(e.target.value)}
-                  placeholder="https://images.unsplash.com/..."
-                  style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255,255,255,0.15)', background: isLight ? '#f8fafc' : 'rgba(255,255,255,0.05)', color: 'inherit', outline: 'none' }}
-                />
-              </div>
-
-              {/* Description */}
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '6px' }}>Description</label>
-                <textarea
-                  rows={3}
-                  value={editDescription}
-                  onChange={e => setEditDescription(e.target.value)}
-                  placeholder="Event details..."
-                  style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255,255,255,0.15)', background: isLight ? '#f8fafc' : 'rgba(255,255,255,0.05)', color: 'inherit', outline: 'none', resize: 'vertical' }}
-                />
-              </div>
-
-              {/* Action Buttons */}
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '12px' }}>
-                <button
-                  type="button"
-                  onClick={() => setShowEditModal(false)}
-                  style={{ padding: '9px 20px', borderRadius: '10px', border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255,255,255,0.15)', background: 'none', color: 'inherit', cursor: 'pointer', fontWeight: 600 }}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving || !editTitle.trim()}
-                  style={{ padding: '9px 22px', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg, #06b6d4, #3b82f6)', color: '#fff', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
-                >
-                  <CheckCircle2 size={16} />
-                  <span>{saving ? 'Saving...' : 'Save Changes'}</span>
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
