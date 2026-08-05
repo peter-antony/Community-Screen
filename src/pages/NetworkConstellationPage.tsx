@@ -2431,7 +2431,7 @@ export const NetworkConstellationPage: React.FC = () => {
       <header className="constellation-header glass-panel" onClick={(e) => e.stopPropagation()}>
         <div className="logo-container" onClick={() => navigate('/')}>
           <Network size={20} className="text-cyan animate-pulse" />
-          <span className="logo-text">COMMUNITY123</span>
+          <span className="logo-text">COMMUNITY</span>
         </div>
 
         {/* Desktop Nav */}
