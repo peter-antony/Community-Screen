@@ -1797,7 +1797,7 @@
   border-top-color: rgba(255, 255, 255, 0.96);
 }
 
-/* ── "YOU ARE HERE" DOT ── */
+/* ── "YOU ARE HERE" PROFILE PICTURE PIN ── */
 .nm-you-dot {
   position: absolute;
   transform: translate(-50%, -50%);
@@ -1805,7 +1805,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  pointer-events: none;
+  pointer-events: auto;
+  cursor: pointer;
 }
 
 .nm-you-ripple-1 {
@@ -1813,7 +1814,7 @@
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: rgba(37, 99, 235, 0.18);
+  background: rgba(6, 182, 212, 0.22);
   animation: nm-ripple 2.8s ease-out infinite;
   display: block;
 }
@@ -1823,7 +1824,7 @@
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: rgba(37, 99, 235, 0.22);
+  background: rgba(59, 130, 246, 0.25);
   animation: nm-ripple 2.8s ease-out 0.9s infinite;
   display: block;
 }
@@ -1831,7 +1832,7 @@
 @keyframes nm-ripple {
   0% {
     transform: scale(0.8);
-    opacity: 0.7;
+    opacity: 0.75;
   }
 
   100% {
@@ -1840,35 +1841,42 @@
   }
 }
 
-.nm-you-core {
-  width: 16px;
-  height: 16px;
+.nm-you-avatar-wrapper {
+  position: relative;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
-  background: #2563eb;
-  border: 3px solid #fff;
-  box-shadow: 0 0 16px rgba(37, 99, 235, 0.8), 0 2px 8px rgba(0, 0, 0, 0.3);
+  padding: 2px;
+  background: linear-gradient(135deg, #06b6d4, #3b82f6);
+  box-shadow: 0 0 16px rgba(6, 182, 212, 0.6), 0 4px 12px rgba(0, 0, 0, 0.4);
   z-index: 2;
+  transition: transform 0.2s ease;
+}
+
+.nm-you-dot:hover .nm-you-avatar-wrapper {
+  transform: scale(1.18);
+  box-shadow: 0 0 20px rgba(6, 182, 212, 0.8), 0 6px 16px rgba(0, 0, 0, 0.5);
+}
+
+.nm-you-avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
   display: block;
+  border: 1.5px solid #ffffff;
 }
 
-.nm-you-label {
-  margin-top: 8px;
-  font-size: 10px;
-  font-weight: 700;
-  color: #93c5fd;
-  background: rgba(5, 12, 26, 0.85);
-  padding: 2px 8px;
-  border-radius: 10px;
-  border: 1px solid rgba(37, 99, 235, 0.35);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-  letter-spacing: 0.04em;
-  white-space: nowrap;
-}
-
-.light-theme .nm-you-label {
-  color: #1d4ed8;
-  background: rgba(255, 255, 255, 0.92);
-  border-color: rgba(37, 99, 235, 0.3);
+.nm-you-status-indicator {
+  position: absolute;
+  bottom: -1px;
+  right: -1px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #10b981;
+  border: 1.5px solid #ffffff;
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.8);
 }
 
 /* ── TOP-LEFT CONTROLS (CATEGORY & SEARCH) ── */
