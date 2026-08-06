@@ -507,7 +507,7 @@
   }
 
   .profile-avatar-block {
-    margin-top: -30px;
+    margin-top: -80px;
   }
 
   .profile-action-controls {
@@ -523,8 +523,441 @@
     font-size: 18px;
     font-weight: 600;
   }
+}
 
-  .count-lbl {
-    font-size: 11px;
-  }
+/* ══════════════════════════════════════════════════════════════════════════════
+   EDIT PROFILE SCREENSHOT EXACT LAYOUT STYLES
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+.edit-profile-view-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  max-width: 560px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.edit-profile-header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 8px 4px;
+}
+
+.edit-circular-back-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid var(--border-glass);
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  backdrop-filter: blur(12px);
+}
+
+.edit-circular-back-btn:hover {
+  background: rgba(139, 92, 246, 0.25);
+  color: #a855f7;
+  transform: translateX(-2px);
+}
+
+.edit-panel-title-centered {
+  font-size: 1.45rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+  text-align: center;
+  flex: 1;
+}
+
+/* Centered Avatar Section */
+.edit-avatar-centered-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+  margin-bottom: 12px;
+}
+
+.edit-avatar-big-wrap {
+  position: relative;
+  width: 130px;
+  height: 130px;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.edit-avatar-big-img {
+  width: 130px;
+  height: 130px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+
+.edit-avatar-purple-plus {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.5);
+  border: 2px solid #ffffff;
+  transition: transform 0.25s ease;
+}
+
+.edit-avatar-big-wrap:hover .edit-avatar-purple-plus {
+  transform: scale(1.12);
+}
+
+.edit-avatar-url-drawer {
+  width: 100%;
+  max-width: 440px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-glass);
+  margin-top: 4px;
+}
+
+/* Edit Menu Cards List */
+.edit-menu-cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+}
+
+.edit-menu-card-item {
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-glass);
+  backdrop-filter: blur(16px);
+  overflow: hidden;
+  transition: all 0.25s ease;
+}
+
+.light-theme .edit-menu-card-item,
+[data-theme='light'] .edit-menu-card-item {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+}
+
+.edit-menu-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 22px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.edit-menu-card-title {
+  font-size: 1.02rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.edit-menu-card-chevron {
+  color: var(--text-muted);
+  transition: transform 0.25s ease;
+}
+
+.edit-menu-card-chevron.open {
+  transform: rotate(90deg);
+  color: #8b5cf6;
+}
+
+.edit-menu-card-body {
+  padding: 0 22px 20px 22px;
+  border-top: 1px solid var(--border-glass);
+  margin-top: -4px;
+  padding-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.edit-card-subval {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   ANIMATED EDIT PROFILE PANEL STYLES (Right-to-Left Viewport Animation)
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+.user-profile-view-wrapper,
+.edit-profile-view-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+}
+
+.edit-profile-header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  border-radius: 20px;
+}
+
+.edit-back-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-glass);
+  color: var(--text-primary);
+  padding: 8px 16px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.25s ease;
+}
+
+.edit-back-btn:hover {
+  background: rgba(255, 255, 255, 0.16);
+  transform: translateX(-3px);
+}
+
+.edit-panel-title {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.edit-save-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.edit-profile-cover-card {
+  padding: 20px;
+  border-radius: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.edit-cover-preview {
+  height: 180px;
+  border-radius: 16px;
+  background-size: cover;
+  background-position: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.edit-cover-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.edit-cover-input-group {
+  position: absolute;
+  bottom: 14px;
+  left: 14px;
+  right: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(10px);
+  padding: 8px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
+.edit-url-input {
+  background: transparent !important;
+  border: none !important;
+  color: inherit !important;
+  padding: 4px !important;
+  font-size: 0.88rem !important;
+  width: 100%;
+}
+
+.edit-avatar-container {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.edit-avatar-preview-wrap {
+  position: relative;
+  width: 90px;
+  height: 90px;
+  flex-shrink: 0;
+}
+
+.edit-avatar-preview {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+}
+
+.edit-avatar-badge {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--accent-cyan, #06b6d4);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.edit-avatar-input-box {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.edit-field-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.edit-profile-form-card {
+  padding: 24px;
+  border-radius: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.edit-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.edit-interests-manager {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.interests-pill-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.edit-interest-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  background: rgba(6, 182, 212, 0.15);
+  border: 1px solid rgba(6, 182, 212, 0.35);
+  color: var(--accent-cyan, #06b6d4);
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.remove-interest-btn {
+  background: transparent;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  opacity: 0.7;
+  padding: 2px;
+  transition: opacity 0.2s ease;
+}
+
+.remove-interest-btn:hover {
+  opacity: 1;
+  color: #ef4444;
+}
+
+.add-interest-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.add-interest-input {
+  max-width: 320px;
+  width: 100%;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   MODERN FORM TEXTAREA STYLING
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+.edit-menu-card-body .form-textarea,
+.profile-bio-box .form-textarea {
+  width: 100%;
+  padding: 14px 18px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-glass);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  resize: vertical;
+  min-height: 110px;
+  box-sizing: border-radius;
+  transition: all 0.25s ease;
+  outline: none;
+}
+
+.edit-menu-card-body .form-textarea:focus,
+.profile-bio-box .form-textarea:focus {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: #8b5cf6;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2), 0 0 16px rgba(139, 92, 246, 0.25);
+}
+
+.light-theme .edit-menu-card-body .form-textarea,
+[data-theme='light'] .edit-menu-card-body .form-textarea {
+  background: #f8fafc !important;
+  color: #0f172a !important;
+  border-color: rgba(0, 0, 0, 0.12) !important;
+}
+
+.light-theme .edit-menu-card-body .form-textarea:focus,
+[data-theme='light'] .edit-menu-card-body .form-textarea:focus {
+  background: #ffffff !important;
+  border-color: #8b5cf6 !important;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15) !important;
 }
