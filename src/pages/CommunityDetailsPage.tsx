@@ -21,6 +21,7 @@ import {
 import type { CommunityItem } from '../types';
 import './CommunityDetailsPage.css';
 import { supabase } from '../supabaseClient';
+import { getUserCurrentLocation, calculateHaversineDistance, resolveCommunityCoordinates, type LatLng } from '../services/locationUtils';
 
 interface ThemeConfig {
   type: string;
@@ -234,7 +235,10 @@ export const CommunityDetailsPage: React.FC = () => {
   const [newMaxParticipants, setNewMaxParticipants] = useState('10');
   const [newDescription, setNewDescription] = useState('');
 
+  const [userLocation, setUserLocation] = useState<LatLng | null>(null);
+
   useEffect(() => {
+    getUserCurrentLocation().then(loc => setUserLocation(loc));
     fetchCommunities();
     fetchActivities();
   }, []);
@@ -519,13 +523,13 @@ export const CommunityDetailsPage: React.FC = () => {
               >
                 <Star size={18} fill={isFavorite ? '#f59e0b' : 'none'} stroke={isFavorite ? '#f59e0b' : 'currentColor'} />
               </button>
-              <button
+              {/* <button
                 className="btn-icon btn-icon-cyan"
                 onClick={() => navigate(`/community-chat?id=${community.id}`)}
                 title="Community Chat"
               >
                 <MessageCircleMore size={18} />
-              </button>
+              </button> */}
               <button className="btn-icon btn-icon-cyan" onClick={handleShare} title="Share">
                 <Share2 size={18} />
               </button>
@@ -622,7 +626,13 @@ export const CommunityDetailsPage: React.FC = () => {
                   </div>
                   <div className="about-item-info">
                     <span className="item-value">{community.name}</span>
-                    <span className="item-label-sub">{community.distance}</span>
+                    <span className="item-label-sub">
+                      {(() => {
+                        if (!userLocation) return community.distance;
+                        const coords = resolveCommunityCoordinates(community);
+                        return calculateHaversineDistance(userLocation.lat, userLocation.lng, coords.lat, coords.lng);
+                      })()}
+                    </span>
                   </div>
                 </div>
 

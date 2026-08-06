@@ -5,6 +5,7 @@ import {
   Plus, Minus
 } from 'lucide-react';
 import '../assets/css/CommunityMapPage.css';
+import { getUserCurrentLocation, calculateHaversineDistance, type LatLng } from '../services/locationUtils';
 
 // ─────────────────────────────────────────────
 // CONSTANTS
@@ -241,6 +242,17 @@ export const CommunityMapPage: React.FC = () => {
   const [dragging, setDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [mapSize, setMapSize] = useState({ w: window.innerWidth, h: window.innerHeight });
+  const [userLocation, setUserLocation] = useState<LatLng | null>(null);
+
+  useEffect(() => {
+    getUserCurrentLocation().then(loc => setUserLocation(loc));
+  }, []);
+
+  useEffect(() => {
+    if (selected) {
+      getUserCurrentLocation().then(loc => setUserLocation(loc));
+    }
+  }, [selected]);
 
   const mapRef = useRef<HTMLDivElement>(null);
 
@@ -502,7 +514,12 @@ export const CommunityMapPage: React.FC = () => {
 
             <div className="cmp-popup-meta">
               <span><Clock size={12} /> {selected.schedule}</span>
-              <span><MapPin size={12} /> {selected.distance}</span>
+              <span>
+                <MapPin size={12} />{' '}
+                {userLocation && selected.lat != null && selected.lng != null
+                  ? calculateHaversineDistance(userLocation.lat, userLocation.lng, selected.lat, selected.lng)
+                  : selected.distance}
+              </span>
               <span><Users size={12} /> {selected.members} members</span>
             </div>
 

@@ -160,6 +160,14 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
 
             <button
               className="theme-toggle-btn btn-icon"
+              onClick={(e) => { e.stopPropagation(); navigate('/community-chat'); }}
+              title="Community Chat"
+              style={{ marginRight: '4px' }}
+            >
+              <MessageCircleMore size={16} />
+            </button>
+            <button
+              className="theme-toggle-btn btn-icon"
               onClick={(e) => { e.stopPropagation(); toggleTheme(); }}
               title={`Switch to ${theme === 'light' ? 'Dark' : 'Light'} Mode`}
             >

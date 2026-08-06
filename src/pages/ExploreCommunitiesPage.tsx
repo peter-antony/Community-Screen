@@ -19,6 +19,7 @@ import '../assets/css/ExploreCommunitiesPage.css';
 import type { CommunityItem } from '../types';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
+import { getUserCurrentLocation, calculateHaversineDistance, resolveCommunityCoordinates, type LatLng } from '../services/locationUtils';
 import { useAuth } from '../context/AuthContext';
 
 
@@ -229,7 +230,10 @@ export const ExploreCommunitiesPage: React.FC = () => {
     distance: '1.5 km away'
   });
 
+  const [userLocation, setUserLocation] = useState<LatLng | null>(null);
+
   useEffect(() => {
+    getUserCurrentLocation().then(loc => setUserLocation(loc));
     fetchCommunities();
   }, []);
 
@@ -387,7 +391,13 @@ export const ExploreCommunitiesPage: React.FC = () => {
           <div className="community-meta">
             <span>{item.dateStr} at {item.timeStr}</span>
             <span className="meta-dot">•</span>
-            <span>{item.distance}</span>
+            <span>
+              {(() => {
+                if (!userLocation) return item.distance;
+                const coords = resolveCommunityCoordinates(item);
+                return calculateHaversineDistance(userLocation.lat, userLocation.lng, coords.lat, coords.lng);
+              })()}
+            </span>
           </div>
         </div>
 

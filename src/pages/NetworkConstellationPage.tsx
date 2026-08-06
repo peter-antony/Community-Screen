@@ -40,6 +40,7 @@ import {
 import type { User, CommunityItem } from '../types';
 import './NetworkConstellationPage.css';
 import { supabase } from '../supabaseClient';
+import { getUserCurrentLocation, calculateHaversineDistance, resolveCommunityCoordinates, type LatLng } from '../services/locationUtils';
 
 export interface EventCategoryOption {
   id: string;
@@ -240,6 +241,17 @@ const NetworkMap: React.FC<NetworkMapProps> = ({ communityGroups, onRefreshCommu
   const navigate = useNavigate();
   const { user: authUser } = useAuth();
   const [selected, setSelected] = useState<MapCommunity | null>(null);
+  const [userLocation, setUserLocation] = useState<LatLng | null>(null);
+
+  useEffect(() => {
+    getUserCurrentLocation().then(loc => setUserLocation(loc));
+  }, []);
+
+  useEffect(() => {
+    if (selected) {
+      getUserCurrentLocation().then(loc => setUserLocation(loc));
+    }
+  }, [selected]);
   const [hovered, setHovered] = useState<string | null>(null);
   const [category, setCategory] = useState('all');
   const [search, setSearch] = useState('');
@@ -853,9 +865,14 @@ const NetworkMap: React.FC<NetworkMapProps> = ({ communityGroups, onRefreshCommu
                   <h3 className="nm-popup-title" style={{ color: pin.color }}>{pin.name}</h3>
                   <p className="nm-popup-desc">{pin.description}</p>
                   <div className="nm-popup-meta">
-                    <span><Clock size={12} /> {pin.schedule}</span>
+                    {/* <span><Clock size={12} /> {pin.schedule}</span> */}
                     <div className="nm-popup-meta-row">
-                      <span><MapPin size={12} /> {pin.distance}</span>
+                      <span>
+                        <MapPin size={12} />{' '}
+                        {userLocation && pin.lat != null && pin.lng != null
+                          ? calculateHaversineDistance(userLocation.lat, userLocation.lng, Number(pin.lat), Number(pin.lng))
+                          : pin.distance}
+                      </span>
                       <span><Users size={12} /> {pin.members} members</span>
                     </div>
                   </div>
@@ -893,7 +910,7 @@ const NetworkMap: React.FC<NetworkMapProps> = ({ communityGroups, onRefreshCommu
                       <span>Events</span>
                     </button>
 
-                    <button
+                    {/* <button
                       className="nm-card-btn nm-card-btn-chat"
                       onClick={(e) => {
                         e.stopPropagation();
@@ -903,7 +920,7 @@ const NetworkMap: React.FC<NetworkMapProps> = ({ communityGroups, onRefreshCommu
                     >
                       <MessageCircleMore size={13} />
                       <span>Chat</span>
-                    </button>
+                    </button> */}
                   </div>
 
                   <div className="nm-popup-host">
@@ -1687,7 +1704,7 @@ const NetworkMap: React.FC<NetworkMapProps> = ({ communityGroups, onRefreshCommu
                   </div>
 
                   {/* Date & Time Row */}
-                  <div className="nm-form-row">
+                  {/* <div className="nm-form-row">
                     <div className="nm-form-group flex-1">
                       <label className="nm-form-label">Date</label>
                       <input
@@ -1708,7 +1725,7 @@ const NetworkMap: React.FC<NetworkMapProps> = ({ communityGroups, onRefreshCommu
                         onChange={e => setCreateForm({ ...createForm, timeStr: e.target.value, schedule: [createForm.dateStr, e.target.value].filter(Boolean).join(' · ') })}
                       />
                     </div>
-                  </div>
+                  </div> */}
 
                   {/* Description */}
                   <div className="nm-form-group">
@@ -2126,8 +2143,14 @@ export const NetworkConstellationPage: React.FC = () => {
     }
 
     if (data) {
+      const userLoc = await getUserCurrentLocation();
       const mapped: MapCommunity[] = data.map((g, idx) => {
         const palette = UI_COMMUNITY_COLOR_PALETTES[idx % UI_COMMUNITY_COLOR_PALETTES.length];
+        const cLat = Number(g.lat);
+        const cLng = Number(g.lng);
+        const calculatedDist = (userLoc && !isNaN(cLat) && !isNaN(cLng))
+          ? calculateHaversineDistance(userLoc.lat, userLoc.lng, cLat, cLng)
+          : (g.distance || '1.2 km away');
         let parsedAttendees = [
           { name: g.host_name || 'Host', avatar: g.host_avatar || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=60&q=80', role: 'Host' },
           { name: 'Priya Sharma', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=60&q=80', role: 'Member' },
@@ -2168,7 +2191,7 @@ export const NetworkConstellationPage: React.FC = () => {
           schedule: cSchedule,
           dateStr: cDateStr,
           timeStr: cTimeStr,
-          distance: g.distance || '',
+          distance: calculatedDist,
           image: g.image || 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&w=320&q=85',
           hostName: g.host_name || g.hostName || '',
           hostAvatar: g.host_avatar || g.hostAvatar || '',
@@ -2450,6 +2473,15 @@ export const NetworkConstellationPage: React.FC = () => {
         <div className="constellation-user-control">
           <button
             className="btn-icon theme-toggle-btn"
+            onClick={(e) => { e.stopPropagation(); navigate('/community-chat'); }}
+            title="Community Chat"
+            style={{ marginRight: '8px' }}
+          >
+            <MessageCircleMore size={16} />
+          </button>
+
+          <button
+            className="btn-icon theme-toggle-btn"
             onClick={(e) => { e.stopPropagation(); toggleTheme(); }}
             title={`Switch to ${theme === 'light' ? 'Dark' : 'Light'} Mode`}
             style={{ marginRight: '8px' }}
@@ -2636,7 +2668,7 @@ export const NetworkConstellationPage: React.FC = () => {
                           {/* Top Action Header Bar (No Overlap with Orbit Nodes) */}
                           <div className="community-popup-top-bar">
                             <div className="community-quick-actions">
-                              <button
+                              {/* <button
                                 className="btn-community-action btn-chat-action"
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -2647,7 +2679,7 @@ export const NetworkConstellationPage: React.FC = () => {
                               >
                                 <MessageCircleMore size={14} />
                                 <span>Chat</span>
-                              </button>
+                              </button> */}
 
                               <button
                                 className="btn-community-action btn-add-members-action"
@@ -2817,7 +2849,7 @@ export const NetworkConstellationPage: React.FC = () => {
                       {/* Top Action Header Bar (No Overlap with Orbit Nodes) */}
                       <div className="community-popup-top-bar">
                         <div className="community-quick-actions">
-                          <button
+                          {/* <button
                             className="btn-community-action btn-chat-action"
                             onClick={(e) => {
                               e.stopPropagation();
@@ -2828,7 +2860,7 @@ export const NetworkConstellationPage: React.FC = () => {
                           >
                             <MessageCircleMore size={14} />
                             <span>Chat</span>
-                          </button>
+                          </button> */}
 
                           <button
                             className="btn-community-action btn-add-members-action"
