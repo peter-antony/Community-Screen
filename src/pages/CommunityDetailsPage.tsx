@@ -16,7 +16,8 @@ import {
   X,
   Check,
   UserPlus,
-  Sparkles
+  Sparkles,
+  Heart
 } from 'lucide-react';
 import type { CommunityItem } from '../types';
 import './CommunityDetailsPage.css';
@@ -517,11 +518,15 @@ export const CommunityDetailsPage: React.FC = () => {
 
             <div className="profile-btn-group">
               <button
-                className={`btn-icon ${isFavorite ? 'btn-icon-amber bookmarked' : 'btn-icon-grey'}`}
+                className={`btn-icon ${isFavorite ? 'btn-icon-rose favorited' : 'btn-icon-grey'}`}
                 onClick={() => setIsFavorite(!isFavorite)}
-                title="Favorite"
+                title={isFavorite ? "Remove from Favorites" : "Add to Favorites"}
               >
-                <Star size={18} fill={isFavorite ? '#f59e0b' : 'none'} stroke={isFavorite ? '#f59e0b' : 'currentColor'} />
+                {isFavorite ? (
+                  <Heart size={18} fill="#ef4444" color="#ef4444" />
+                ) : (
+                  <Heart size={18} color="#94a3b8" />
+                )}
               </button>
               {/* <button
                 className="btn-icon btn-icon-cyan"
@@ -643,7 +648,24 @@ export const CommunityDetailsPage: React.FC = () => {
                   </div>
                   <div className="about-item-info">
                     <span className="item-label">Spoken languages</span>
-                    <span className="item-value">{config.languages}</span>
+                    <span className="item-value">
+                      {(community as any).languages
+                        ? (Array.isArray((community as any).languages) ? (community as any).languages.join(', ') : (community as any).languages)
+                        : config.languages}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Created Date */}
+                <div className="about-item-row">
+                  <div className="about-item-icon-wrapper standard-icon-bg">
+                    <Calendar size={18} className="item-svg-icon" />
+                  </div>
+                  <div className="about-item-info">
+                    <span className="item-label">Created Date</span>
+                    <span className="item-value">
+                      {(community as any).createdDate || (community as any).created_date || 'August 2026'}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -895,24 +917,23 @@ export const CommunityDetailsPage: React.FC = () => {
 
               <div className="form-group-row">
                 <div className="form-group">
-                  <label className="form-label">Date</label>
+                  <label className="form-label">Date *</label>
                   <input
-                    type="text"
-                    placeholder="e.g. Tomorrow or July 28"
+                    type="date"
+                    min={new Date().toISOString().split('T')[0]}
                     value={newDateStr}
                     onChange={(e) => setNewDateStr(e.target.value)}
-                    className="form-input"
+                    className="form-input nm-date-inp"
                   />
                 </div>
 
                 <div className="form-group">
                   <label className="form-label">Time</label>
                   <input
-                    type="text"
-                    placeholder="e.g. 6:00 PM"
+                    type="time"
                     value={newTimeStr}
                     onChange={(e) => setNewTimeStr(e.target.value)}
-                    className="form-input"
+                    className="form-input nm-date-inp"
                   />
                 </div>
               </div>

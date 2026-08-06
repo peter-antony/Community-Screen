@@ -13,7 +13,8 @@ import {
   Clock,
   MapPin,
   Image as ImageIcon,
-  MessageSquare
+  MessageSquare,
+  Upload
 } from 'lucide-react';
 import '../assets/css/ExploreCommunitiesPage.css';
 import type { CommunityItem } from '../types';
@@ -231,6 +232,25 @@ export const ExploreCommunitiesPage: React.FC = () => {
   });
 
   const [userLocation, setUserLocation] = useState<LatLng | null>(null);
+
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!file.type.startsWith('image/')) {
+        alert('Please select a valid image file');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result === 'string') {
+          setFormData(prev => ({ ...prev, image: reader.result as string }));
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   useEffect(() => {
     getUserCurrentLocation().then(loc => setUserLocation(loc));
@@ -684,28 +704,40 @@ export const ExploreCommunitiesPage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Preset Image Selector */}
+                  {/* Local Image Upload & Preset Selector */}
                   <div className="form-group">
                     <label className="form-label">Cover Image</label>
-                    <div className="preset-images-wrapper">
-                      <div className="preset-images-grid">
-                        {PRESET_IMAGES[formData.theme].map((imgUrl, idx) => (
-                          <div
-                            key={idx}
-                            className={`preset-img-thumb ${formData.image === imgUrl || (!formData.image && idx === 0) ? 'selected' : ''}`}
-                            onClick={() => setFormData({ ...formData, image: imgUrl })}
-                          >
-                            <img src={imgUrl} alt={`Preset ${idx}`} />
-                          </div>
-                        ))}
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      accept="image/*"
+                      style={{ display: 'none' }}
+                      onChange={handleImageFileChange}
+                    />
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      <button
+                        type="button"
+                        className="btn-create-submit"
+                        onClick={() => fileInputRef.current?.click()}
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', background: 'rgba(6, 182, 212, 0.15)', color: 'var(--accent-cyan)', border: '1px dashed rgba(6, 182, 212, 0.4)', padding: '12px', borderRadius: '10px', cursor: 'pointer' }}
+                      >
+                        <Upload size={16} />
+                        <span>{formData.image ? 'Change Local Image File' : 'Upload Image from Computer'}</span>
+                      </button>
+
+                      <div className="preset-images-wrapper">
+                        <div className="preset-images-grid">
+                          {PRESET_IMAGES[formData.theme].map((imgUrl, idx) => (
+                            <div
+                              key={idx}
+                              className={`preset-img-thumb ${formData.image === imgUrl || (!formData.image && idx === 0) ? 'selected' : ''}`}
+                              onClick={() => setFormData({ ...formData, image: imgUrl })}
+                            >
+                              <img src={imgUrl} alt={`Preset ${idx}`} />
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                      <input
-                        type="text"
-                        placeholder="Or paste custom image URL..."
-                        value={formData.image}
-                        onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-                        className="form-input custom-url-input"
-                      />
                     </div>
                   </div>
 
