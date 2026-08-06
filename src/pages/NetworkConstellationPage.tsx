@@ -893,18 +893,25 @@ const NetworkMap: React.FC<NetworkMapProps> = ({ communityGroups, setCommunityGr
         />
       ))}
 
-      {/* Bangalore "You are here" indicator */}
+      {/* User Current Location Indicator with Profile Picture */}
       <div
         className="nm-you-dot"
         style={{
           left: userDot.x,
           top: userDot.y,
         }}
+        title={`${authUser?.name || 'You'} (Your Location)`}
       >
         <span className="nm-you-ripple-1" />
         <span className="nm-you-ripple-2" />
-        <span className="nm-you-core" />
-        <span className="nm-you-label">You</span>
+        <div className="nm-you-avatar-wrapper">
+          <img
+            src={authUser?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=60&q=80'}
+            alt={authUser?.name || 'You'}
+            className="nm-you-avatar-img"
+          />
+          <span className="nm-you-status-indicator" />
+        </div>
       </div>
 
       {/* COMMUNITY PINS */}
