@@ -35,11 +35,17 @@ import {
   Send,
   Mail,
   CheckCircle2,
-  Pencil
+  Pencil,
+  Upload,
+  Image as ImageIcon,
+  Languages,
+  Check,
+  Heart
 } from 'lucide-react';
 import type { User, CommunityItem } from '../types';
 import './NetworkConstellationPage.css';
 import { supabase } from '../supabaseClient';
+import { getUserCurrentLocation, calculateHaversineDistance, resolveCommunityCoordinates, type LatLng } from '../services/locationUtils';
 
 export interface EventCategoryOption {
   id: string;
@@ -149,7 +155,24 @@ interface MapCommunity {
   joined?: boolean;
   dateStr?: string;
   timeStr?: string;
+  languages?: string[];
+  createdDate?: string;
+  favorited?: boolean;
 }
+
+const AVAILABLE_LANGUAGES = [
+  'English',
+  'Hindi',
+  'Kannada',
+  'Tamil',
+  'Telugu',
+  'Malayalam',
+  'Marathi',
+  'Bengali',
+  'Spanish',
+  'French',
+  'German'
+];
 
 interface MapTile {
   x: number; y: number; px: number; py: number; key: string;
@@ -230,16 +253,28 @@ const MAP_CATEGORIES = [
 
 interface NetworkMapProps {
   communityGroups: MapCommunity[];
+  setCommunityGroups: React.Dispatch<React.SetStateAction<MapCommunity[]>>;
   onRefreshCommunities?: () => Promise<void> | void;
 }
 
 // ─────────────────────────────────────────────
 // NETWORK MAP COMPONENT — Interactive Zoom & Pan Map
 // ─────────────────────────────────────────────
-const NetworkMap: React.FC<NetworkMapProps> = ({ communityGroups, onRefreshCommunities }) => {
+const NetworkMap: React.FC<NetworkMapProps> = ({ communityGroups, setCommunityGroups, onRefreshCommunities }) => {
   const navigate = useNavigate();
   const { user: authUser } = useAuth();
   const [selected, setSelected] = useState<MapCommunity | null>(null);
+  const [userLocation, setUserLocation] = useState<LatLng | null>(null);
+
+  useEffect(() => {
+    getUserCurrentLocation().then(loc => setUserLocation(loc));
+  }, []);
+
+  useEffect(() => {
+    if (selected) {
+      getUserCurrentLocation().then(loc => setUserLocation(loc));
+    }
+  }, [selected]);
   const [hovered, setHovered] = useState<string | null>(null);
   const [category, setCategory] = useState('all');
   const [search, setSearch] = useState('');
@@ -251,6 +286,29 @@ const NetworkMap: React.FC<NetworkMapProps> = ({ communityGroups, onRefreshCommu
   const [inviteContact, setInviteContact] = useState('');
   const [inviteSuccess, setInviteSuccess] = useState(false);
   const [joiningId, setJoiningId] = useState<string | null>(null);
+
+  const toggleFavoriteCommunity = async (communityId: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+
+    setCommunityGroups(prev => prev.map(c => {
+      if (c.id === communityId) {
+        return { ...c, favorited: !c.favorited };
+      }
+      return c;
+    }));
+
+    if (selected && selected.id === communityId) {
+      setSelected(prev => prev ? { ...prev, favorited: !prev.favorited } : null);
+    }
+
+    try {
+      const targetComm = communityGroups.find(c => c.id === communityId);
+      const isFavNow = !targetComm?.favorited;
+      await supabase.from('community_map').update({ favorited: isFavNow }).eq('id', communityId);
+    } catch (err) {
+      console.error("Error toggling favorite:", err);
+    }
+  };
 
   const handleJoinCommunity = async (community: MapCommunity) => {
     if (community.joined || joiningId === community.id) return;
@@ -311,8 +369,8 @@ const NetworkMap: React.FC<NetworkMapProps> = ({ communityGroups, onRefreshCommu
   const [showCreateCommunityModal, setShowCreateCommunityModal] = useState(false);
   const [createForm, setCreateForm] = useState({
     name: '',
-    category: 'tech',
-    emoji: '💻',
+    category: '',
+    emoji: '',
     description: '',
     schedule: '',
     dateStr: '',
@@ -323,6 +381,7 @@ const NetworkMap: React.FC<NetworkMapProps> = ({ communityGroups, onRefreshCommu
     locationName: 'JP Nagar 3rd Phase, Bengaluru',
     lat: 12.9105,
     lng: 77.5958,
+    languages: [] as string[],
   });
   const [locationInput, setLocationInput] = useState('');
   const [locationSuggestions, setLocationSuggestions] = useState<LocationOption[]>([]);
@@ -330,13 +389,54 @@ const NetworkMap: React.FC<NetworkMapProps> = ({ communityGroups, onRefreshCommu
   const [selectedLocation, setSelectedLocation] = useState<LocationOption | null>(null);
   const [createSuccess, setCreateSuccess] = useState(false);
 
+  const [communityImageName, setCommunityImageName] = useState('');
+  const communityFileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleCommunityImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!file.type.startsWith('image/')) {
+        alert('Please select a valid image file (PNG, JPG, WEBP, etc.)');
+        return;
+      }
+      setCommunityImageName(file.name);
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result === 'string') {
+          setCreateForm(prev => ({ ...prev, image: reader.result as string }));
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   // Create Event Modal states
   const [showCreateEventModal, setShowCreateEventModal] = useState(false);
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [eventModalCommunity, setEventModalCommunity] = useState<MapCommunity | null>(null);
-  const [eventCategoryItem, setEventCategoryItem] = useState<EventCategoryOption>(EVENT_CATEGORY_OPTIONS[0]);
+  const [eventCategoryItem, setEventCategoryItem] = useState<EventCategoryOption | null>(null);
   const [eventTitle, setEventTitle] = useState('');
   const [eventImage, setEventImage] = useState('');
+  const [eventImageName, setEventImageName] = useState('');
+  const eventFileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleEventImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!file.type.startsWith('image/')) {
+        alert('Please select a valid image file (PNG, JPG, WEBP, etc.)');
+        return;
+      }
+      setEventImageName(file.name);
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result === 'string') {
+          setEventImage(reader.result as string);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
   const [eventDateStr, setEventDateStr] = useState('');
   const [eventTimeStr, setEventTimeStr] = useState('');
   const [eventLocationInput, setEventLocationInput] = useState('');
@@ -351,8 +451,8 @@ const NetworkMap: React.FC<NetworkMapProps> = ({ communityGroups, onRefreshCommu
     if (showCreateCommunityModal) {
       setCreateForm({
         name: '',
-        category: 'tech',
-        emoji: '💻',
+        category: '',
+        emoji: '',
         description: '',
         schedule: '',
         dateStr: '',
@@ -363,12 +463,14 @@ const NetworkMap: React.FC<NetworkMapProps> = ({ communityGroups, onRefreshCommu
         locationName: '',
         lat: null as any,
         lng: null as any,
+        languages: []
       });
       setLocationInput('');
       setSelectedLocation(null);
       setLocationSuggestions([]);
       setShowLocationDropdown(false);
       setCreateSuccess(false);
+      setCommunityImageName('');
     }
   }, [showCreateCommunityModal]);
 
@@ -376,7 +478,7 @@ const NetworkMap: React.FC<NetworkMapProps> = ({ communityGroups, onRefreshCommu
   useEffect(() => {
     if (showCreateEventModal && !editingEventId) {
       setEventTitle('');
-      setEventCategoryItem(EVENT_CATEGORY_OPTIONS[0]);
+      setEventCategoryItem(null);
       setEventImage('');
       setEventDateStr('');
       setEventTimeStr('');
@@ -386,6 +488,7 @@ const NetworkMap: React.FC<NetworkMapProps> = ({ communityGroups, onRefreshCommu
       setShowEventLocationDropdown(false);
       setEventDescription('');
       setEventSuccess(false);
+      setEventImageName('');
     }
   }, [showCreateEventModal, editingEventId]);
 
@@ -400,7 +503,7 @@ const NetworkMap: React.FC<NetworkMapProps> = ({ communityGroups, onRefreshCommu
     setEventsModalCommunity(null);
     setSelected(null);
     setEventModalCommunity(targetComm);
-    setEventCategoryItem(EVENT_CATEGORY_OPTIONS[0]);
+    setEventCategoryItem(null);
     setEventTitle('');
     setEventImage('');
     setEventDateStr('');
@@ -627,6 +730,10 @@ const NetworkMap: React.FC<NetworkMapProps> = ({ communityGroups, onRefreshCommu
     const tagsText = createForm.tags.trim() || 'Networking';
     const tagsArray = tagsText.split(',').map(t => t.trim()).filter(Boolean);
 
+    const selectedLangs = createForm.languages || [];
+    const languagesStr = selectedLangs.join(', ');
+    const todayCreatedDate = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
     const newObj: MapCommunity = {
       id: newId,
       name: createForm.name.trim(),
@@ -648,6 +755,8 @@ const NetworkMap: React.FC<NetworkMapProps> = ({ communityGroups, onRefreshCommu
       hostAvatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=60&q=80',
       description: createForm.description || 'Welcome to our new community!',
       tags: tagsArray,
+      languages: selectedLangs,
+      createdDate: todayCreatedDate,
       attendees: [
         { name: 'You (Host)', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=60&q=80', role: 'Host' }
       ],
@@ -677,6 +786,8 @@ const NetworkMap: React.FC<NetworkMapProps> = ({ communityGroups, onRefreshCommu
           host_avatar: newObj.hostAvatar,
           description: newObj.description,
           tags: tagsText,
+          languages: languagesStr,
+          created_date: todayCreatedDate,
           attendees: JSON.stringify(newObj.attendees),
           joined: true,
         }
@@ -703,11 +814,14 @@ const NetworkMap: React.FC<NetworkMapProps> = ({ communityGroups, onRefreshCommu
     const targetLng = eventSelectedLocation ? eventSelectedLocation.lng : (eventModalCommunity?.lng || MAP_BANGALORE.lng);
     const targetLocName = eventSelectedLocation ? eventSelectedLocation.name : (eventLocationInput.trim() || eventModalCommunity?.locationName || eventModalCommunity?.name || 'Bengaluru');
 
+    const catLabel = eventCategoryItem ? eventCategoryItem.label : 'General';
+    const catImage = eventCategoryItem ? eventCategoryItem.image : 'https://images.unsplash.com/photo-1511632765486-a01980e01a18?auto=format&fit=crop&w=600&q=80';
+
     if (editingEventId) {
       const updatedObj = {
         title: eventTitle.trim(),
-        category: eventCategoryItem.label,
-        image: eventImage || eventCategoryItem.image,
+        category: catLabel,
+        image: eventImage || catImage,
         date_str: eventDateStr || 'Upcoming',
         time_str: eventTimeStr || '7:00 PM',
         location: targetLocName,
@@ -734,8 +848,8 @@ const NetworkMap: React.FC<NetworkMapProps> = ({ communityGroups, onRefreshCommu
       id: newEventId,
       community_id: targetCommunityId,
       title: eventTitle.trim(),
-      category: eventCategoryItem.label,
-      image: eventImage || eventCategoryItem.image,
+      category: catLabel,
+      image: eventImage || catImage,
       date_str: eventDateStr || 'Upcoming',
       time_str: eventTimeStr || '7:00 PM',
       location: targetLocName,
@@ -844,6 +958,7 @@ const NetworkMap: React.FC<NetworkMapProps> = ({ communityGroups, onRefreshCommu
                 <div className="nm-popup-cover">
                   <img src={pin.image} alt={pin.name} />
                   <div className="nm-popup-gradient" style={{ background: `linear-gradient(to bottom, transparent 40%, ${pin.color}22 100%)` }} />
+
                   <button className="nm-popup-close" onClick={() => setSelected(null)}><X size={13} /></button>
                   <span className="nm-popup-cat-badge" style={{ background: pin.color }}>
                     {pin.emoji} {pin.category}
@@ -853,10 +968,35 @@ const NetworkMap: React.FC<NetworkMapProps> = ({ communityGroups, onRefreshCommu
                   <h3 className="nm-popup-title" style={{ color: pin.color }}>{pin.name}</h3>
                   <p className="nm-popup-desc">{pin.description}</p>
                   <div className="nm-popup-meta">
-                    <span><Clock size={12} /> {pin.schedule}</span>
                     <div className="nm-popup-meta-row">
-                      <span><MapPin size={12} /> {pin.distance}</span>
-                      <span><Users size={12} /> {pin.members} members</span>
+                      <span title={userLocation && pin.lat != null && pin.lng != null ? calculateHaversineDistance(userLocation.lat, userLocation.lng, Number(pin.lat), Number(pin.lng)) : pin.distance}>
+                        <MapPin size={12} />
+                        <span className="nm-meta-text">
+                          {userLocation && pin.lat != null && pin.lng != null
+                            ? calculateHaversineDistance(userLocation.lat, userLocation.lng, Number(pin.lat), Number(pin.lng))
+                            : pin.distance}
+                        </span>
+                      </span>
+                      <span title={`${pin.members} members`}>
+                        <Users size={12} />
+                        <span className="nm-meta-text">{pin.members} members</span>
+                      </span>
+                    </div>
+                    <div className="nm-popup-meta-row">
+                      <span title={pin.languages && pin.languages.length > 0 ? (Array.isArray(pin.languages) ? pin.languages.join(', ') : pin.languages) : 'Not specified'}>
+                        <Languages size={12} />
+                        <span className="nm-meta-text">
+                          {pin.languages && pin.languages.length > 0
+                            ? (Array.isArray(pin.languages) ? pin.languages.join(', ') : pin.languages)
+                            : 'Not specified'}
+                        </span>
+                      </span>
+                      <span title={pin.createdDate || 'Created Aug 2026'}>
+                        <Calendar size={12} />
+                        <span className="nm-meta-text">
+                          {pin.createdDate || 'Created Aug 2026'}
+                        </span>
+                      </span>
                     </div>
                   </div>
                   {/* <div className="nm-popup-tags">
@@ -893,7 +1033,7 @@ const NetworkMap: React.FC<NetworkMapProps> = ({ communityGroups, onRefreshCommu
                       <span>Events</span>
                     </button>
 
-                    <button
+                    {/* <button
                       className="nm-card-btn nm-card-btn-chat"
                       onClick={(e) => {
                         e.stopPropagation();
@@ -903,13 +1043,25 @@ const NetworkMap: React.FC<NetworkMapProps> = ({ communityGroups, onRefreshCommu
                     >
                       <MessageCircleMore size={13} />
                       <span>Chat</span>
-                    </button>
+                    </button> */}
                   </div>
 
                   <div className="nm-popup-host">
                     <img src={pin.hostAvatar} alt={pin.hostName} />
                     <span>Hosted by <strong>{pin.hostName}</strong></span>
-                    <Star size={11} style={{ color: pin.color, marginLeft: 'auto' }} />
+                    <button
+                      className={`nm-popup-fav-btn ${pin.favorited ? 'is-fav' : ''}`}
+                      onClick={(e) => toggleFavoriteCommunity(pin.id, e)}
+                      title={pin.favorited ? "Remove from Favorites" : "Add to Favorites"}
+                      aria-label={pin.favorited ? "Remove from Favorites" : "Add to Favorites"}
+                    >
+                      {pin.favorited ? (
+                        <Heart size={15} fill="#f43f5e" color="#f43f5e" />
+                      ) : (
+                        <Heart size={15} color="#94a3b8" />
+                      )}
+                    </button>
+                    {/* <Star size={11} style={{ color: pin.color, marginLeft: 'auto' }} /> */}
                   </div>
                   <button
                     className={`nm-popup-btn ${pin.joined ? 'joined' : ''}`}
@@ -1014,8 +1166,8 @@ const NetworkMap: React.FC<NetworkMapProps> = ({ communityGroups, onRefreshCommu
             e.stopPropagation();
             setCreateForm({
               name: '',
-              category: 'tech',
-              emoji: '💻',
+              category: '',
+              emoji: '',
               description: '',
               schedule: '',
               dateStr: '',
@@ -1026,6 +1178,7 @@ const NetworkMap: React.FC<NetworkMapProps> = ({ communityGroups, onRefreshCommu
               locationName: null,
               lat: null,
               lng: null,
+              languages: [],
             });
             setCreateSuccess(false);
             setShowCreateCommunityModal(true);
@@ -1686,8 +1839,51 @@ const NetworkMap: React.FC<NetworkMapProps> = ({ communityGroups, onRefreshCommu
                     </div>
                   </div>
 
+                  {/* Multi-Select Spoken Languages (Optional) */}
+                  <div className="nm-form-group">
+                    <label className="nm-form-label">
+                      Spoken Languages (Optional)
+                      {createForm.languages && createForm.languages.length > 0 && (
+                        <span className="nm-location-coords-badge" style={{ marginLeft: '8px' }}>
+                          {createForm.languages.length} selected
+                        </span>
+                      )}
+                    </label>
+                    <div className="nm-languages-picker-wrapper">
+                      <div className="nm-languages-chips-grid">
+                        {AVAILABLE_LANGUAGES.map(lang => {
+                          const isSelected = createForm.languages?.includes(lang);
+                          return (
+                            <button
+                              type="button"
+                              key={lang}
+                              className={`nm-language-chip ${isSelected ? 'selected' : ''}`}
+                              onClick={() => {
+                                const current = createForm.languages || [];
+                                if (isSelected) {
+                                  setCreateForm({
+                                    ...createForm,
+                                    languages: current.filter(l => l !== lang)
+                                  });
+                                } else {
+                                  setCreateForm({
+                                    ...createForm,
+                                    languages: [...current, lang]
+                                  });
+                                }
+                              }}
+                            >
+                              {isSelected && <Check size={12} style={{ marginRight: '2px' }} />}
+                              <span>{lang}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+
                   {/* Date & Time Row */}
-                  <div className="nm-form-row">
+                  {/* <div className="nm-form-row">
                     <div className="nm-form-group flex-1">
                       <label className="nm-form-label">Date</label>
                       <input
@@ -1708,7 +1904,7 @@ const NetworkMap: React.FC<NetworkMapProps> = ({ communityGroups, onRefreshCommu
                         onChange={e => setCreateForm({ ...createForm, timeStr: e.target.value, schedule: [createForm.dateStr, e.target.value].filter(Boolean).join(' · ') })}
                       />
                     </div>
-                  </div>
+                  </div> */}
 
                   {/* Description */}
                   <div className="nm-form-group">
@@ -1722,20 +1918,88 @@ const NetworkMap: React.FC<NetworkMapProps> = ({ communityGroups, onRefreshCommu
                     />
                   </div>
 
-                  {/* Cover Image URL */}
+                  {/* Cover Image Local File Upload */}
                   <div className="nm-form-group">
-                    <label className="nm-form-label">Cover Image URL</label>
+                    <label className="nm-form-label">Cover Image *</label>
                     <input
-                      type="url"
-                      className="nm-form-inp"
-                      placeholder="https://images.unsplash.com/..."
-                      value={createForm.image}
-                      onChange={e => setCreateForm({ ...createForm, image: e.target.value })}
+                      type="file"
+                      ref={communityFileInputRef}
+                      accept="image/*"
+                      style={{ display: 'none' }}
+                      onChange={handleCommunityImageUpload}
                     />
+
+                    {createForm.image ? (
+                      <div className="nm-image-file-box">
+                        <div className="nm-image-file-info">
+                          <div className="nm-image-file-icon">
+                            <ImageIcon size={18} />
+                          </div>
+                          <div className="nm-image-file-details">
+                            <span className="nm-image-file-name">
+                              {communityImageName || 'Uploaded Image File'}
+                            </span>
+                            <span className="nm-image-file-sub">Image attached ready for community</span>
+                          </div>
+                        </div>
+
+                        <div className="nm-image-file-actions">
+                          <button
+                            type="button"
+                            className="nm-img-file-btn nm-img-file-change"
+                            onClick={() => communityFileInputRef.current?.click()}
+                            title="Select a different image"
+                          >
+                            <Upload size={13} />
+                            <span>Change</span>
+                          </button>
+                          <button
+                            type="button"
+                            className="nm-img-file-btn nm-img-file-remove"
+                            onClick={() => {
+                              setCreateForm(prev => ({ ...prev, image: '' }));
+                              setCommunityImageName('');
+                              if (communityFileInputRef.current) communityFileInputRef.current.value = '';
+                            }}
+                            title="Remove image"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div
+                        className="nm-image-dropzone"
+                        onClick={() => communityFileInputRef.current?.click()}
+                        onDragOver={e => e.preventDefault()}
+                        onDrop={e => {
+                          e.preventDefault();
+                          const file = e.dataTransfer.files?.[0];
+                          if (file && file.type.startsWith('image/')) {
+                            setCommunityImageName(file.name);
+                            const reader = new FileReader();
+                            reader.onload = () => {
+                              if (typeof reader.result === 'string') {
+                                setCreateForm(prev => ({ ...prev, image: reader.result as string }));
+                              }
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                      >
+                        <div className="nm-dropzone-icon">
+                          <Upload size={22} />
+                        </div>
+                        <div className="nm-dropzone-text">
+                          <span className="nm-dropzone-main">Click or Drag & Drop image to upload</span>
+                          <span className="nm-dropzone-sub">Upload image from your local device</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Tags */}
-                  <div className="nm-form-group">
+                  {/* <div className="nm-form-group">
                     <label className="nm-form-label">Tags</label>
                     <input
                       type="text"
@@ -1744,7 +2008,7 @@ const NetworkMap: React.FC<NetworkMapProps> = ({ communityGroups, onRefreshCommu
                       value={createForm.tags}
                       onChange={e => setCreateForm({ ...createForm, tags: e.target.value })}
                     />
-                  </div>
+                  </div> */}
 
                   {/* Footer Buttons */}
                   <div className="nm-add-modal-footer">
@@ -1832,7 +2096,7 @@ const NetworkMap: React.FC<NetworkMapProps> = ({ communityGroups, onRefreshCommu
                     <div className="category-scroll-container" onWheel={e => e.stopPropagation()}>
                       <div className="category-items-grid">
                         {EVENT_CATEGORY_OPTIONS.map((cat) => {
-                          const isSelected = eventCategoryItem.id === cat.id;
+                          const isSelected = eventCategoryItem?.id === cat.id;
                           return (
                             <div
                               key={cat.id}
@@ -1870,21 +2134,21 @@ const NetworkMap: React.FC<NetworkMapProps> = ({ communityGroups, onRefreshCommu
                   {/* Date & Time Row */}
                   <div className="nm-form-row">
                     <div className="nm-form-group flex-1">
-                      <label className="nm-form-label">Date</label>
+                      <label className="nm-form-label">Date *</label>
                       <input
-                        type="text"
-                        className="nm-form-inp"
-                        placeholder="e.g. Tomorrow or July 28"
+                        type="date"
+                        className="nm-form-inp nm-date-inp"
+                        min={new Date().toISOString().split('T')[0]}
                         value={eventDateStr}
                         onChange={e => setEventDateStr(e.target.value)}
+                        required
                       />
                     </div>
                     <div className="nm-form-group flex-1">
                       <label className="nm-form-label">Time</label>
                       <input
-                        type="text"
-                        className="nm-form-inp"
-                        placeholder="e.g. 6:00 PM"
+                        type="time"
+                        className="nm-form-inp nm-date-inp"
                         value={eventTimeStr}
                         onChange={e => setEventTimeStr(e.target.value)}
                       />
@@ -1999,16 +2263,84 @@ const NetworkMap: React.FC<NetworkMapProps> = ({ communityGroups, onRefreshCommu
                     )}
                   </div>
 
-                  {/* Cover Image URL */}
+                  {/* Cover Image Local File Upload for Create Event */}
                   <div className="nm-form-group">
-                    <label className="nm-form-label">Cover Image URL</label>
+                    <label className="nm-form-label">Cover Image</label>
                     <input
-                      type="url"
-                      className="nm-form-inp"
-                      placeholder="https://images.unsplash.com/..."
-                      value={eventImage}
-                      onChange={e => setEventImage(e.target.value)}
+                      type="file"
+                      ref={eventFileInputRef}
+                      accept="image/*"
+                      style={{ display: 'none' }}
+                      onChange={handleEventImageUpload}
                     />
+
+                    {eventImage ? (
+                      <div className="nm-image-file-box">
+                        <div className="nm-image-file-info">
+                          <div className="nm-image-file-icon">
+                            <ImageIcon size={18} />
+                          </div>
+                          <div className="nm-image-file-details">
+                            <span className="nm-image-file-name">
+                              {eventImageName || 'Uploaded Image File'}
+                            </span>
+                            <span className="nm-image-file-sub">Image attached ready for event</span>
+                          </div>
+                        </div>
+
+                        <div className="nm-image-file-actions">
+                          <button
+                            type="button"
+                            className="nm-img-file-btn nm-img-file-change"
+                            onClick={() => eventFileInputRef.current?.click()}
+                            title="Select a different image"
+                          >
+                            <Upload size={13} />
+                            <span>Change</span>
+                          </button>
+                          <button
+                            type="button"
+                            className="nm-img-file-btn nm-img-file-remove"
+                            onClick={() => {
+                              setEventImage('');
+                              setEventImageName('');
+                              if (eventFileInputRef.current) eventFileInputRef.current.value = '';
+                            }}
+                            title="Remove image"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div
+                        className="nm-image-dropzone"
+                        onClick={() => eventFileInputRef.current?.click()}
+                        onDragOver={e => e.preventDefault()}
+                        onDrop={e => {
+                          e.preventDefault();
+                          const file = e.dataTransfer.files?.[0];
+                          if (file && file.type.startsWith('image/')) {
+                            setEventImageName(file.name);
+                            const reader = new FileReader();
+                            reader.onload = () => {
+                              if (typeof reader.result === 'string') {
+                                setEventImage(reader.result as string);
+                              }
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                      >
+                        <div className="nm-dropzone-icon">
+                          <Upload size={22} />
+                        </div>
+                        <div className="nm-dropzone-text">
+                          <span className="nm-dropzone-main">Click or Drag & Drop image to upload</span>
+                          <span className="nm-dropzone-sub">Upload image from your local device</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Description */}
@@ -2126,8 +2458,14 @@ export const NetworkConstellationPage: React.FC = () => {
     }
 
     if (data) {
+      const userLoc = await getUserCurrentLocation();
       const mapped: MapCommunity[] = data.map((g, idx) => {
         const palette = UI_COMMUNITY_COLOR_PALETTES[idx % UI_COMMUNITY_COLOR_PALETTES.length];
+        const cLat = Number(g.lat);
+        const cLng = Number(g.lng);
+        const calculatedDist = (userLoc && !isNaN(cLat) && !isNaN(cLng))
+          ? calculateHaversineDistance(userLoc.lat, userLoc.lng, cLat, cLng)
+          : (g.distance || '1.2 km away');
         let parsedAttendees = [
           { name: g.host_name || 'Host', avatar: g.host_avatar || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=60&q=80', role: 'Host' },
           { name: 'Priya Sharma', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=60&q=80', role: 'Member' },
@@ -2153,6 +2491,22 @@ export const NetworkConstellationPage: React.FC = () => {
         const cTimeStr = g.time_str || g.timeStr || '';
         const cSchedule = g.schedule || ([cDateStr, cTimeStr].filter(Boolean).join(' · ')) || '';
 
+        const rawLangs = g.languages;
+        let parsedLangs: string[] = ['English'];
+        if (Array.isArray(rawLangs)) {
+          parsedLangs = rawLangs;
+        } else if (typeof rawLangs === 'string' && rawLangs.trim()) {
+          try {
+            const p = JSON.parse(rawLangs);
+            if (Array.isArray(p)) parsedLangs = p;
+            else parsedLangs = rawLangs.split(',').map((s: string) => s.trim());
+          } catch {
+            parsedLangs = rawLangs.split(',').map((s: string) => s.trim());
+          }
+        }
+
+        const cCreatedDate = g.created_date || g.createdDate || (g.created_at ? new Date(g.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Aug 2026');
+
         return {
           id: String(g.id),
           name: g.name || '',
@@ -2168,12 +2522,15 @@ export const NetworkConstellationPage: React.FC = () => {
           schedule: cSchedule,
           dateStr: cDateStr,
           timeStr: cTimeStr,
-          distance: g.distance || '',
+          distance: calculatedDist,
           image: g.image || 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&w=320&q=85',
           hostName: g.host_name || g.hostName || '',
           hostAvatar: g.host_avatar || g.hostAvatar || '',
           description: g.description || '',
           tags: g.tags || '',
+          languages: parsedLangs,
+          createdDate: cCreatedDate,
+          favorited: g.favorited === true || g.favorited === 'true' || g.favorited === 1,
           attendees: parsedAttendees,
           joined: g.joined === true || g.joined === 'true' || g.joined === 1,
         };
@@ -2450,6 +2807,15 @@ export const NetworkConstellationPage: React.FC = () => {
         <div className="constellation-user-control">
           <button
             className="btn-icon theme-toggle-btn"
+            onClick={(e) => { e.stopPropagation(); navigate('/community-chat'); }}
+            title="Community Chat"
+            style={{ marginRight: '8px' }}
+          >
+            <MessageCircleMore size={16} />
+          </button>
+
+          <button
+            className="btn-icon theme-toggle-btn"
             onClick={(e) => { e.stopPropagation(); toggleTheme(); }}
             title={`Switch to ${theme === 'light' ? 'Dark' : 'Light'} Mode`}
             style={{ marginRight: '8px' }}
@@ -2521,7 +2887,7 @@ export const NetworkConstellationPage: React.FC = () => {
 
       {/* Main Map Area */}
       <main className="constellation-arena">
-        <NetworkMap communityGroups={communityGroups} onRefreshCommunities={fetchCommunityGroups} />
+        <NetworkMap communityGroups={communityGroups} setCommunityGroups={setCommunityGroups} onRefreshCommunities={fetchCommunityGroups} />
       </main>
 
       {/* Tooltip / Detail Card */}
@@ -2636,7 +3002,7 @@ export const NetworkConstellationPage: React.FC = () => {
                           {/* Top Action Header Bar (No Overlap with Orbit Nodes) */}
                           <div className="community-popup-top-bar">
                             <div className="community-quick-actions">
-                              <button
+                              {/* <button
                                 className="btn-community-action btn-chat-action"
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -2647,7 +3013,7 @@ export const NetworkConstellationPage: React.FC = () => {
                               >
                                 <MessageCircleMore size={14} />
                                 <span>Chat</span>
-                              </button>
+                              </button> */}
 
                               <button
                                 className="btn-community-action btn-add-members-action"
@@ -2817,7 +3183,7 @@ export const NetworkConstellationPage: React.FC = () => {
                       {/* Top Action Header Bar (No Overlap with Orbit Nodes) */}
                       <div className="community-popup-top-bar">
                         <div className="community-quick-actions">
-                          <button
+                          {/* <button
                             className="btn-community-action btn-chat-action"
                             onClick={(e) => {
                               e.stopPropagation();
@@ -2828,7 +3194,7 @@ export const NetworkConstellationPage: React.FC = () => {
                           >
                             <MessageCircleMore size={14} />
                             <span>Chat</span>
-                          </button>
+                          </button> */}
 
                           <button
                             className="btn-community-action btn-add-members-action"
